@@ -145,6 +145,7 @@ fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
         }
         EfficientBroadcast => {
             std::env::set_var("TOPOLOGY", "ignore");
+            std::env::set_var("TICK_TIME", "300");
             vec![
                 "test",
                 "-w",

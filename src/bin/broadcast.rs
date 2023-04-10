@@ -162,10 +162,16 @@ impl EventHandler {
 
 #[allow(unreachable_code, unused_variables)]
 pub fn ticker(event_tx: Sender<Event>, close_rx: Receiver<()>) {
+    let duration = std::env::var("TICK_TIME")
+        .ok()
+        .and_then(|x| x.parse().ok())
+        .unwrap_or(100);
     while let Err(RecvTimeoutError::Timeout) =
-        close_rx.recv_timeout(Duration::from_millis(50))
+        close_rx.recv_timeout(Duration::from_millis(duration))
     {
-        event_tx.send(Event::Tick).expect("Message should be passed!");
+        event_tx
+            .send(Event::Tick)
+            .expect("Message should be passed!");
     }
 }
 
