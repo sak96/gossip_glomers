@@ -32,6 +32,8 @@ pub enum Challange {
     FaultyBroadcast,
     /// Build and run efficient broadcast challenge
     EfficientBroadcast,
+    /// Build and run efficient broadcast two challenge
+    EfficientBroadcast2,
 }
 
 impl Challange {
@@ -40,7 +42,7 @@ impl Challange {
         match self {
             Echo => "echo",
             UniqueId => "unique_id",
-            SingleBroadcast | MultiBroadcast | FaultyBroadcast | EfficientBroadcast => "broadcast",
+            SingleBroadcast | MultiBroadcast | FaultyBroadcast | EfficientBroadcast | EfficientBroadcast2 => "broadcast",
         }
         .to_string()
     }
@@ -146,6 +148,23 @@ fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
         EfficientBroadcast => {
             std::env::set_var("TOPOLOGY", "ignore");
             std::env::set_var("TICK_TIME", "300");
+            vec![
+                "test",
+                "-w",
+                "broadcast",
+                "--bin",
+                bin_path,
+                "--node-count",
+                "25",
+                "--time-limit",
+                "20",
+                "--rate",
+                "100",
+                "--latency",
+                "100",
+            ]
+        }
+        EfficientBroadcast2 => {
             vec![
                 "test",
                 "-w",
