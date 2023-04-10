@@ -24,6 +24,8 @@ pub enum Challange {
     Echo,
     /// Build and run unique id challenge
     UniqueId,
+    /// Build and run single broadcast challenge
+    SingleBroadcast
 }
 
 impl Challange {
@@ -31,6 +33,7 @@ impl Challange {
         match self {
             Challange::Echo => "echo",
             Challange::UniqueId => "unique_id",
+            Challange::SingleBroadcast => "broadcast",
         }
         .to_string()
     }
@@ -83,6 +86,22 @@ fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
                 "total",
                 "--nemesis",
                 "partition",
+            ]
+        }
+        Challange::SingleBroadcast => {
+            vec![
+
+                "test",
+                "-w",
+                "broadcast",
+                "--bin",
+                bin_path,
+                "--time-limit",
+                "20",
+                "--rate",
+                "10",
+                "--node-count",
+                "1",
             ]
         }
     }
