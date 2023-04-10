@@ -42,7 +42,8 @@ impl Challange {
         match self {
             Echo => "echo",
             UniqueId => "unique_id",
-            SingleBroadcast | MultiBroadcast | FaultyBroadcast | EfficientBroadcast | EfficientBroadcast2 => "broadcast",
+            SingleBroadcast | MultiBroadcast | FaultyBroadcast | EfficientBroadcast
+            | EfficientBroadcast2 => "broadcast",
         }
         .to_string()
     }
@@ -146,8 +147,6 @@ fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
             ]
         }
         EfficientBroadcast => {
-            std::env::set_var("TOPOLOGY", "ignore");
-            std::env::set_var("TICK_TIME", "300");
             vec![
                 "test",
                 "-w",
@@ -162,9 +161,12 @@ fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
                 "100",
                 "--latency",
                 "100",
+                "--topology",
+                "total",
             ]
         }
         EfficientBroadcast2 => {
+            std::env::set_var("TICK_TIME", "100");
             vec![
                 "test",
                 "-w",
