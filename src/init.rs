@@ -4,8 +4,7 @@ use crate::message::{Body, Message};
 
 // TODO: move these decoration to some macro.
 #[derive(Deserialize)]
-#[serde(tag = "type")]
-#[serde(rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum InitRequest {
     Init {
         node_id: String,
@@ -15,8 +14,7 @@ pub enum InitRequest {
 
 // TODO: move these decoration to some macro.
 #[derive(Serialize)]
-#[serde(tag = "type")]
-#[serde(rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum InitRespone {
     InitOk,
 }

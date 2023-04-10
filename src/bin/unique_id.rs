@@ -8,16 +8,14 @@ use serde::{Deserialize, Serialize};
 
 // TODO: move these decoration to some macro.
 #[derive(Deserialize)]
-#[serde(tag = "type")]
-#[serde(rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum GenRequest {
     Generate,
 }
 
 // TODO: move these decoration to some macro.
 #[derive(Serialize)]
-#[serde(tag = "type")]
-#[serde(rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum GenRespone {
     GenerateOk { id: String },
 }
