@@ -5,7 +5,7 @@ use clap::{Parser, ValueEnum};
 #[derive(Parser, Debug)]
 pub struct Options {
     /// Package binary to build
-    #[arg(value_enum, default_value = "echo")]
+    #[arg(value_enum)]
     pub program: Program,
 
     /// Maelstrom binary location
