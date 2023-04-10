@@ -6,7 +6,7 @@ use clap::{Parser, ValueEnum};
 pub struct Options {
     /// Package binary to build
     #[arg(value_enum)]
-    pub program: Program,
+    pub challange: Challange,
 
     /// Maelstrom binary location
     #[arg(short, long, default_value = "maelstrom")]
@@ -19,18 +19,18 @@ pub struct Options {
 
 #[derive(Clone, ValueEnum, Parser, Debug)]
 #[clap(rename_all = "snake_case")]
-pub enum Program {
+pub enum Challange {
     /// Build and run echo challenge
     Echo,
     /// Build and run echo challenge
     UniqueId,
 }
 
-impl Program {
+impl Challange {
     pub fn get_name(&self) -> String {
         match self {
-            Program::Echo => "echo",
-            Program::UniqueId => "unique_id",
+            Challange::Echo => "echo",
+            Challange::UniqueId => "unique_id",
         }
         .to_string()
     }
@@ -49,11 +49,11 @@ fn build(release: bool, bin_name: String) {
     assert!(status.success());
 }
 
-/// Get maelstorm Arguments based on program
-fn get_maelstrom_args(program: &Program, bin_path: String) -> Vec<&str> {
+/// Get maelstorm Arguments based on challenge
+fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
     let bin_path: &'static str = Box::leak(Box::new(bin_path));
-    match program {
-        Program::Echo => {
+    match challange {
+        Challange::Echo => {
             vec![
                 "test",
                 "-w",
@@ -66,7 +66,7 @@ fn get_maelstrom_args(program: &Program, bin_path: String) -> Vec<&str> {
                 "10",
             ]
         }
-        Program::UniqueId => {
+        Challange::UniqueId => {
             vec![
                 "test",
                 "-w",
@@ -90,11 +90,11 @@ fn get_maelstrom_args(program: &Program, bin_path: String) -> Vec<&str> {
 
 pub fn run(opts: Options) {
     let profile = if opts.release { "release" } else { "debug" };
-    let bin_name = opts.program.get_name();
+    let bin_name = opts.challange.get_name();
     let bin_path = format!("{}/{}/{}", env!("CARGO_TARGET_DIR"), profile, bin_name);
     build(opts.release, bin_name);
     let status = Command::new(opts.maelstrom_bin)
-        .args(&get_maelstrom_args(&opts.program, bin_path))
+        .args(&get_maelstrom_args(&opts.challange, bin_path))
         .status()
         .expect("failed to run!");
     assert!(status.success());
