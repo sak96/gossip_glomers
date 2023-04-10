@@ -22,7 +22,7 @@ pub struct Options {
 pub enum Challange {
     /// Build and run echo challenge
     Echo,
-    /// Build and run echo challenge
+    /// Build and run unique id challenge
     UniqueId,
 }
 

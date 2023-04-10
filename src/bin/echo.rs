@@ -30,14 +30,14 @@ fn main() {
     let _init = init(&mut stdout, &mut deseralizer, Some(id));
     loop {
         id += 1;
-        let echo_msg = Message::recv(&mut deseralizer);
-        let response = match echo_msg.body.payload {
+        let request = Message::recv(&mut deseralizer);
+        let response = match request.body.payload {
             EchoRequest::Echo { echo } => Message {
-                src: echo_msg.dst,
-                dst: echo_msg.src,
+                src: request.dst,
+                dst: request.src,
                 body: Body {
                     id: Some(id),
-                    reply_id: echo_msg.body.id,
+                    reply_id: request.body.id,
                     payload: EchoRespone::EchoOk { echo },
                 },
             },

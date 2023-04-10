@@ -31,14 +31,14 @@ fn main() {
     };
     let mut id = 0;
     loop {
-        let echo_msg = Message::recv(&mut deseralizer);
-        let response = match echo_msg.body.payload {
+        let request = Message::recv(&mut deseralizer);
+        let response = match request.body.payload {
             GenRequest::Generate => Message {
-                src: echo_msg.dst,
-                dst: echo_msg.src,
+                src: request.dst,
+                dst: request.src,
                 body: Body {
                     id: Some(id),
-                    reply_id: echo_msg.body.id,
+                    reply_id: request.body.id,
                     payload: GenRespone::GenerateOk {
                         id: format!("{}/{}", node_id, id),
                     },
