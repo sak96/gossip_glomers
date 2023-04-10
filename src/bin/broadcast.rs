@@ -153,14 +153,10 @@ impl EventHandler {
 
 #[allow(unreachable_code, unused_variables)]
 pub fn ticker(event_tx: Sender<Event>, close_rx: Receiver<()>) {
-    let mut duration = 300;
     while let Err(RecvTimeoutError::Timeout) =
-        close_rx.recv_timeout(Duration::from_millis(duration))
+        close_rx.recv_timeout(Duration::from_millis(50))
     {
-        match event_tx.send(Event::Tick) {
-            Ok(_) => duration = 300,
-            Err(_) => duration = 10,
-        }
+        event_tx.send(Event::Tick).expect("Message should be passed!");
     }
 }
 
