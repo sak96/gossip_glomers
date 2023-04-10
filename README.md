@@ -12,7 +12,7 @@ This project tries to implement the same using Rust language.
 
 2. Run challenges.
   ```bash
-  cargo xtask run "$CHALLANGE"
+  cargo xtask run --release "$CHALLANGE"
   ```
 
 3. Serve Results.
