@@ -93,13 +93,13 @@ impl EventHandler {
                 Some(BroadCastRespone::TopologyOk)
             }
             BroadCastRequest::Gossip {
-                seen: newly_seen,
+                seen,
                 you_saw,
             } => {
                 let (known, last_sent) = self.known.get_mut(src).expect("node are pre-determined");
                 known.extend(you_saw.iter());
-                self.messages.extend(newly_seen.iter().copied());
-                *last_sent = newly_seen;
+                self.messages.extend(seen.iter().copied());
+                *last_sent = seen;
                 None
             }
         }
