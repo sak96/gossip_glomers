@@ -54,6 +54,7 @@ struct EventHandler {
     messages: HashSet<usize>,
     known: HashMap<String, (HashSet<usize>, HashSet<usize>)>,
     peers: HashSet<String>,
+    ignore_topology: bool,
 }
 
 impl EventHandler {
@@ -61,15 +62,22 @@ impl EventHandler {
         let (node, node_ids) = match init_request {
             InitRequest::Init { node_id, node_ids } => (node_id, node_ids),
         };
+        let ignore_topology = matches!(std::env::var("TOPOLOGY"), Ok(value) if value.eq("ignore"));
+        let peers = if ignore_topology {
+            HashSet::from_iter(node_ids.iter().cloned())
+        } else {
+            HashSet::default()
+        };
         Self {
-            node,
-            id,
             known: node_ids
                 .into_iter()
                 .map(|nid| (nid, (HashSet::default(), HashSet::default())))
                 .collect(),
             messages: HashSet::default(),
-            peers: HashSet::default(),
+            node,
+            id,
+            peers,
+            ignore_topology,
         }
     }
 
@@ -87,15 +95,14 @@ impl EventHandler {
                 messages: self.messages.clone(),
             }),
             BroadCastRequest::Topology { mut topology } => {
-                if let Some(peers) = topology.remove(&self.node) {
-                    self.peers = peers.into_iter().collect();
+                if !self.ignore_topology {
+                    if let Some(peers) = topology.remove(&self.node) {
+                        self.peers = peers.into_iter().collect();
+                    }
                 }
                 Some(BroadCastRespone::TopologyOk)
             }
-            BroadCastRequest::Gossip {
-                seen,
-                you_saw,
-            } => {
+            BroadCastRequest::Gossip { seen, you_saw } => {
                 let (known, last_sent) = self.known.get_mut(src).expect("node are pre-determined");
                 known.extend(you_saw.iter());
                 self.messages.extend(seen.iter().copied());
