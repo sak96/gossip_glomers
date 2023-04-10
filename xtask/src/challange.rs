@@ -30,6 +30,8 @@ pub enum Challange {
     MultiBroadcast,
     /// Build and run faulty broadcast challenge
     FaultyBroadcast,
+    /// Build and run efficient broadcast challenge
+    EfficientBroadcast,
 }
 
 impl Challange {
@@ -38,7 +40,7 @@ impl Challange {
         match self {
             Echo => "echo",
             UniqueId => "unique_id",
-            SingleBroadcast | MultiBroadcast | FaultyBroadcast => "broadcast",
+            SingleBroadcast | MultiBroadcast | FaultyBroadcast | EfficientBroadcast => "broadcast",
         }
         .to_string()
     }
@@ -139,6 +141,23 @@ fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
                 "10",
                 "--nemesis",
                 "partition",
+            ]
+        }
+        EfficientBroadcast => {
+            vec![
+                "test",
+                "-w",
+                "broadcast",
+                "--bin",
+                bin_path,
+                "--node-count",
+                "25",
+                "--time-limit",
+                "20",
+                "--rate",
+                "100",
+                "--latency",
+                "100",
             ]
         }
     }
