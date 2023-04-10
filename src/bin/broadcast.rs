@@ -23,7 +23,7 @@ pub enum BroadCastRequest {
     },
     Gossip {
         seen: HashSet<usize>,
-        you_saw: HashSet<usize>,
+        you_saw: Vec<usize>,
     },
 }
 
@@ -37,8 +37,8 @@ pub enum BroadCastRespone {
     },
     TopologyOk,
     Gossip {
-        seen: HashSet<usize>,
-        you_saw: HashSet<usize>,
+        seen: Vec<usize>,
+        you_saw: Vec<usize>,
     },
 }
 
