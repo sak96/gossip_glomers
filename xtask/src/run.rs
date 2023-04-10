@@ -22,13 +22,17 @@ pub struct Options {
 pub enum Program {
     /// Build and run echo challenge
     Echo,
+    /// Build and run echo challenge
+    UniqueId,
 }
 
 impl Program {
     pub fn get_name(&self) -> String {
         match self {
-            Program::Echo => "echo".to_string(),
+            Program::Echo => "echo",
+            Program::UniqueId => "unique_id",
         }
+        .to_string()
     }
 }
 
@@ -60,6 +64,25 @@ fn get_maelstrom_args(program: &Program, bin_path: String) -> Vec<&str> {
                 "1",
                 "--time-limit",
                 "10",
+            ]
+        }
+        Program::UniqueId => {
+            vec![
+                "test",
+                "-w",
+                "unique-ids",
+                "--bin",
+                bin_path,
+                "--time-limit",
+                "30",
+                "--rate",
+                "1000",
+                "--node-count",
+                "3",
+                "--availability",
+                "total",
+                "--nemesis",
+                "partition",
             ]
         }
     }
