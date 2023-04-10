@@ -1,6 +1,6 @@
 use clap::Parser;
 
-mod run;
+mod challange;
 mod serve;
 
 #[derive(Parser, Debug)]
@@ -12,14 +12,16 @@ struct Cli {
 
 #[derive(Debug, Parser)]
 enum Command {
-    Run(run::Options),
+    Run(challange::Options),
     Serve(serve::Options),
+    List,
 }
 
 fn main() {
     let opts = Cli::parse();
     match opts.command {
-        Command::Run(options) => run::run(options),
+        Command::Run(options) => challange::run(options),
         Command::Serve(options) => serve::serve(options),
+        Command::List => challange::list(),
     }
 }

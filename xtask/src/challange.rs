@@ -25,7 +25,7 @@ pub enum Challange {
     /// Build and run unique id challenge
     UniqueId,
     /// Build and run single broadcast challenge
-    SingleBroadcast
+    SingleBroadcast,
 }
 
 impl Challange {
@@ -90,7 +90,6 @@ fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
         }
         Challange::SingleBroadcast => {
             vec![
-
                 "test",
                 "-w",
                 "broadcast",
@@ -117,4 +116,14 @@ pub fn run(opts: Options) {
         .status()
         .expect("failed to run!");
     assert!(status.success());
+}
+
+pub fn list() {
+    print!(
+        "{}",
+        Challange::value_variants()
+            .iter()
+            .map(|var| format!("{}\n", var.to_possible_value().unwrap().get_name()))
+            .collect::<String>()
+    )
 }
