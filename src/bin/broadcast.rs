@@ -1,4 +1,4 @@
-use hashbrown::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::{
     io::{stdin, stdout},
     sync::mpsc::{channel, sync_channel, Receiver, RecvTimeoutError, Sender, SyncSender},
@@ -66,10 +66,10 @@ impl EventHandler {
             id,
             known: node_ids
                 .into_iter()
-                .map(|nid| (nid, (HashSet::new(), HashSet::new())))
+                .map(|nid| (nid, (HashSet::default(), HashSet::default())))
                 .collect(),
-            messages: HashSet::new(),
-            neighborhood: HashSet::new(),
+            messages: HashSet::default(),
+            neighborhood: HashSet::default(),
         }
     }
 
