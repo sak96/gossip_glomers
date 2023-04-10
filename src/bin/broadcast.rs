@@ -53,7 +53,7 @@ struct EventHandler {
     id: usize,
     messages: HashSet<usize>,
     known: HashMap<String, (HashSet<usize>, HashSet<usize>)>,
-    neighborhood: HashSet<String>,
+    peers: HashSet<String>,
 }
 
 impl EventHandler {
@@ -69,7 +69,7 @@ impl EventHandler {
                 .map(|nid| (nid, (HashSet::default(), HashSet::default())))
                 .collect(),
             messages: HashSet::default(),
-            neighborhood: HashSet::default(),
+            peers: HashSet::default(),
         }
     }
 
@@ -87,8 +87,8 @@ impl EventHandler {
                 messages: self.messages.clone(),
             }),
             BroadCastRequest::Topology { mut topology } => {
-                if let Some(neighborhood) = topology.remove(&self.node) {
-                    self.neighborhood = neighborhood.into_iter().collect();
+                if let Some(peers) = topology.remove(&self.node) {
+                    self.peers = peers.into_iter().collect();
                 }
                 Some(BroadCastRespone::TopologyOk)
             }
@@ -108,10 +108,10 @@ impl EventHandler {
         for event in rx.iter() {
             match event {
                 Event::Tick => {
-                    for neighbour in self.neighborhood.iter() {
+                    for peer in self.peers.iter() {
                         let (known, last_sent) = self
                             .known
-                            .get_mut(neighbour)
+                            .get_mut(peer)
                             .expect("node are pre-determined");
                         let response = Message {
                             body: Body {
@@ -123,7 +123,7 @@ impl EventHandler {
                                 },
                             },
                             src: self.node.to_string(),
-                            dst: neighbour.to_string(),
+                            dst: peer.to_string(),
                         };
                         response.send(writer);
                         self.id += 1;
