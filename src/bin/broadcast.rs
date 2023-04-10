@@ -109,18 +109,20 @@ impl EventHandler {
             match event {
                 Event::Tick => {
                     for peer in self.peers.iter() {
-                        let (known, last_sent) = self
-                            .known
-                            .get_mut(peer)
-                            .expect("node are pre-determined");
+                        let (known, last_sent) =
+                            self.known.get_mut(peer).expect("node are pre-determined");
+                        let payload = match (
+                            self.messages.difference(known).copied().collect::<Vec<_>>(),
+                            last_sent.drain().collect::<Vec<_>>(),
+                        ) {
+                            (seen, you_saw) if seen.is_empty() & you_saw.is_empty() => continue,
+                            (seen, you_saw) => BroadCastRespone::Gossip { seen, you_saw },
+                        };
                         let response = Message {
                             body: Body {
                                 id: None,
                                 reply_id: None,
-                                payload: BroadCastRespone::Gossip {
-                                    seen: self.messages.difference(known).copied().collect(),
-                                    you_saw: last_sent.drain().collect(),
-                                },
+                                payload,
                             },
                             src: self.node.to_string(),
                             dst: peer.to_string(),
