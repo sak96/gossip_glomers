@@ -26,14 +26,19 @@ pub enum Challange {
     UniqueId,
     /// Build and run single broadcast challenge
     SingleBroadcast,
+    /// Build and run multi broadcast challenge
+    MultiBroadcast,
+    /// Build and run faulty broadcast challenge
+    FaultyBroadcast,
 }
 
 impl Challange {
     pub fn get_name(&self) -> String {
+        use Challange::*;
         match self {
-            Challange::Echo => "echo",
-            Challange::UniqueId => "unique_id",
-            Challange::SingleBroadcast => "broadcast",
+            Echo => "echo",
+            UniqueId => "unique_id",
+            SingleBroadcast | MultiBroadcast | FaultyBroadcast => "broadcast",
         }
         .to_string()
     }
@@ -54,9 +59,10 @@ fn build(release: bool, bin_name: String) {
 
 /// Get maelstorm Arguments based on challenge
 fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
+    use Challange::*;
     let bin_path: &'static str = Box::leak(Box::new(bin_path));
     match challange {
-        Challange::Echo => {
+        Echo => {
             vec![
                 "test",
                 "-w",
@@ -69,7 +75,7 @@ fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
                 "10",
             ]
         }
-        Challange::UniqueId => {
+        UniqueId => {
             vec![
                 "test",
                 "-w",
@@ -88,7 +94,7 @@ fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
                 "partition",
             ]
         }
-        Challange::SingleBroadcast => {
+        SingleBroadcast => {
             vec![
                 "test",
                 "-w",
@@ -103,9 +109,42 @@ fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
                 "1",
             ]
         }
+        MultiBroadcast => {
+            vec![
+                "test",
+                "-w",
+                "broadcast",
+                "--bin",
+                bin_path,
+                "--node-count",
+                "5",
+                "--time-limit",
+                "20",
+                "--rate",
+                "10",
+            ]
+        }
+        FaultyBroadcast => {
+            vec![
+                "test",
+                "-w",
+                "broadcast",
+                "--bin",
+                bin_path,
+                "--node-count",
+                "5",
+                "--time-limit",
+                "20",
+                "--rate",
+                "10",
+                "--nemesis",
+                "partition",
+            ]
+        }
     }
 }
 
+/// build and run the challenge
 pub fn run(opts: Options) {
     let profile = if opts.release { "release" } else { "debug" };
     let bin_name = opts.challange.get_name();
@@ -118,6 +157,7 @@ pub fn run(opts: Options) {
     assert!(status.success());
 }
 
+/// list challenges
 pub fn list() {
     print!(
         "{}",

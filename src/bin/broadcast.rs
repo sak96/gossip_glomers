@@ -72,40 +72,79 @@ impl EventHandler {
             neighborhood: HashSet::new(),
         }
     }
-    pub fn handle_input_payload(&mut self, payload: BroadCastRequest) -> BroadCastRespone {
+
+    fn handle_input_payload(
+        &mut self,
+        payload: BroadCastRequest,
+        src: &str,
+    ) -> Option<BroadCastRespone> {
         match payload {
             BroadCastRequest::Broadcast { message } => {
                 self.messages.insert(message);
-                BroadCastRespone::BroadcastOk
+                Some(BroadCastRespone::BroadcastOk)
             }
-            BroadCastRequest::Read => BroadCastRespone::ReadOk {
+            BroadCastRequest::Read => Some(BroadCastRespone::ReadOk {
                 messages: self.messages.clone(),
-            },
+            }),
             BroadCastRequest::Topology { mut topology } => {
                 if let Some(neighborhood) = topology.remove(&self.node) {
                     self.neighborhood = neighborhood.into_iter().collect();
                 }
-                BroadCastRespone::TopologyOk
+                Some(BroadCastRespone::TopologyOk)
             }
-            BroadCastRequest::Gossip { .. } => todo!("this is required for multi-node"),
+            BroadCastRequest::Gossip {
+                seen: newly_seen,
+                you_saw,
+            } => {
+                let (known, last_sent) = self.known.get_mut(src).expect("node are pre-determined");
+                known.extend(you_saw.iter());
+                self.messages.extend(newly_seen.iter().copied());
+                *last_sent = newly_seen;
+                None
+            }
         }
     }
     pub fn handle_events<W: std::io::Write>(&mut self, rx: Receiver<Event>, writer: &mut W) {
         for event in rx.iter() {
             match event {
-                Event::Tick => todo!("this is required for multi-node"),
+                Event::Tick => {
+                    for neighbour in self.neighborhood.iter() {
+                        let (known, last_sent) = self
+                            .known
+                            .get_mut(neighbour)
+                            .expect("node are pre-determined");
+                        let response = Message {
+                            body: Body {
+                                id: None,
+                                reply_id: None,
+                                payload: BroadCastRespone::Gossip {
+                                    seen: self.messages.difference(known).copied().collect(),
+                                    you_saw: last_sent.drain().collect(),
+                                },
+                            },
+                            src: self.node.to_string(),
+                            dst: neighbour.to_string(),
+                        };
+                        response.send(writer);
+                        self.id += 1;
+                    }
+                }
                 Event::Input(request) => {
-                    let response = Message {
-                        src: request.dst,
-                        dst: request.src,
-                        body: Body {
-                            id: Some(self.id),
-                            reply_id: request.body.id,
-                            payload: self.handle_input_payload(request.body.payload),
-                        },
-                    };
-                    response.send(writer);
-                    self.id += 1;
+                    if let Some(payload) =
+                        self.handle_input_payload(request.body.payload, &request.src)
+                    {
+                        let response = Message {
+                            body: Body {
+                                id: Some(self.id),
+                                reply_id: request.body.id,
+                                payload,
+                            },
+                            src: request.dst,
+                            dst: request.src,
+                        };
+                        response.send(writer);
+                        self.id += 1;
+                    }
                 }
             };
         }
@@ -114,8 +153,6 @@ impl EventHandler {
 
 #[allow(unreachable_code, unused_variables)]
 pub fn ticker(event_tx: Sender<Event>, close_rx: Receiver<()>) {
-    return;
-    todo!("this is required for multi-node");
     let mut duration = 300;
     while let Err(RecvTimeoutError::Timeout) =
         close_rx.recv_timeout(Duration::from_millis(duration))
