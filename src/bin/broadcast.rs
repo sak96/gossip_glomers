@@ -57,11 +57,12 @@ struct EventHandler {
 }
 
 impl EventHandler {
-    pub fn new(id: usize, init_request: InitRequest) -> Self {
+    pub fn new(init_request: InitRequest) -> Self {
         let (node, node_ids) = match init_request {
             InitRequest::Init { node_id, node_ids } => (node_id, node_ids),
         };
         Self {
+            id: 0,
             known: node_ids
                 .into_iter()
                 .map(|nid| (nid, (HashSet::default(), HashSet::default())))
@@ -69,7 +70,6 @@ impl EventHandler {
             messages: HashSet::default(),
             peers: HashSet::default(),
             node,
-            id,
         }
     }
 
@@ -193,11 +193,10 @@ pub fn input_recv(event_tx: Sender<Event>) {
 
 fn main() {
     let mut stdout = stdout().lock();
-    let id = 0;
     let init_request = {
         let stdin = stdin().lock();
         let mut deseralizer = serde_json::Deserializer::from_reader(stdin);
-        init(&mut stdout, &mut deseralizer, Some(id))
+        init(&mut stdout, &mut deseralizer, None)
     };
     let (event_tx, event_rx) = channel();
     let (tick_tx, tick_rx) = channel();
@@ -206,5 +205,5 @@ fn main() {
         move || ticker(event_tx, tick_rx)
     });
     std::thread::spawn(move || input_recv(event_tx));
-    EventHandler::new(id, init_request).handle_events(event_rx, tick_tx, &mut stdout);
+    EventHandler::new(init_request).handle_events(event_rx, tick_tx, &mut stdout);
 }

@@ -72,13 +72,13 @@ struct EventHandler {
 }
 
 impl EventHandler {
-    pub fn new(id: usize, init_request: InitRequest) -> Self {
+    pub fn new(init_request: InitRequest) -> Self {
         let (node, _) = match init_request {
             InitRequest::Init { node_id, node_ids } => (node_id, node_ids),
         };
 
         Self {
-            id,
+            id: 0,
             value: 0,
             delta: 0,
             node,
@@ -125,12 +125,10 @@ impl EventHandler {
                 self.value = value + self.delta;
                 if self.delta > 0 {
                     self.last_update = Some((self.id, value, self.value));
-                    let delta = self.delta;
-                    self.delta = 0;
                     Some(CounterRespone::UpdateValueFrom {
                         key: KEY.into(),
                         old: value,
-                        new: value + delta,
+                        new: value + std::mem::take(&mut self.delta),
                         create: false,
                     })
                 } else {
@@ -235,11 +233,10 @@ pub fn input_recv(event_tx: Sender<Event>) {
 
 fn main() {
     let mut stdout = stdout().lock();
-    let id = 0;
     let init_request = {
         let stdin = stdin().lock();
         let mut deseralizer = serde_json::Deserializer::from_reader(stdin);
-        init(&mut stdout, &mut deseralizer, Some(id))
+        init(&mut stdout, &mut deseralizer, None)
     };
     let (event_tx, event_rx) = channel();
     let (tick_tx, tick_rx) = channel();
@@ -248,5 +245,5 @@ fn main() {
         move || ticker(event_tx, tick_rx)
     });
     std::thread::spawn(move || input_recv(event_tx));
-    EventHandler::new(id + 1, init_request).handle_events(event_rx, tick_tx, &mut stdout);
+    EventHandler::new(init_request).handle_events(event_rx, tick_tx, &mut stdout);
 }

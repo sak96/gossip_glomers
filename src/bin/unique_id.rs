@@ -27,9 +27,7 @@ fn main() {
     let node_id = match init(&mut stdout, &mut deseralizer, Some(0)) {
         InitRequest::Init { node_id, .. } => node_id,
     };
-    let mut id = 0;
-    loop {
-        let request = Message::recv(&mut deseralizer);
+    for (id, request) in deseralizer.into_iter::<Message<_>>().flatten().enumerate() {
         let response = match request.body.payload {
             GenRequest::Generate => Message {
                 src: request.dst,
@@ -44,6 +42,5 @@ fn main() {
             },
         };
         response.send(&mut stdout);
-        id += 1;
     }
 }

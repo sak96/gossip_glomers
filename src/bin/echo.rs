@@ -24,11 +24,8 @@ fn main() {
     let stdin = stdin().lock();
     let mut deseralizer = serde_json::Deserializer::from_reader(stdin);
     let mut stdout = stdout().lock();
-    let mut id = 0;
-    let _init = init(&mut stdout, &mut deseralizer, Some(id));
-    loop {
-        id += 1;
-        let request = Message::recv(&mut deseralizer);
+    let _init = init(&mut stdout, &mut deseralizer, None);
+    for (id, request) in deseralizer.into_iter::<Message<_>>().flatten().enumerate() {
         let response = match request.body.payload {
             EchoRequest::Echo { echo } => Message {
                 src: request.dst,
