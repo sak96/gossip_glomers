@@ -123,8 +123,8 @@ impl EventHandler {
                 error => panic!("Unhandled error code: {:?}", error),
             },
             CounterRequest::KeyValue { value } => {
+                self.value = value + self.delta;
                 if self.delta > 0 {
-                    self.value = value + self.delta;
                     self.last_update = Some((self.id, value, self.value));
                     let delta = self.delta;
                     self.delta = 0;
