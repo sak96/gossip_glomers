@@ -63,9 +63,8 @@ fn build(release: bool, bin_name: String) {
 }
 
 /// Get maelstorm Arguments based on challenge
-fn get_maelstrom_args(challange: &Challange, bin_path: String) -> Vec<&str> {
+fn get_maelstrom_args<'a>(challange: &Challange, bin_path: &'a str) -> Vec<&'a str> {
     use Challange::*;
-    let bin_path: &'static str = Box::leak(Box::new(bin_path));
     match challange {
         Echo => {
             vec![
@@ -193,7 +192,7 @@ pub fn run(opts: Options) {
     let bin_path = format!("{}/{}/{}", env!("CARGO_TARGET_DIR"), profile, bin_name);
     build(opts.release, bin_name);
     let status = Command::new(opts.maelstrom_bin)
-        .args(&get_maelstrom_args(&opts.challange, bin_path))
+        .args(&get_maelstrom_args(&opts.challange, &bin_path))
         .status()
         .expect("failed to run!");
     assert!(status.success());
