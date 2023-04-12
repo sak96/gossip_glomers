@@ -1,7 +1,7 @@
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Message<Payload> {
     pub src: String,
     #[serde(rename = "dest")]
@@ -9,7 +9,7 @@ pub struct Message<Payload> {
     pub body: Body<Payload>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Body<Payload> {
     #[serde(rename = "msg_id")]
     pub id: Option<usize>,

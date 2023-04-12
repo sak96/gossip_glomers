@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+
 use crate::message::{Body, Message};
 
 // TODO: move these decoration to some macro.
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum InitRequest {
     Init {
@@ -13,7 +14,7 @@ pub enum InitRequest {
 }
 
 // TODO: move these decoration to some macro.
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum InitRespone {
     InitOk,

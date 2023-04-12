@@ -1,6 +1,14 @@
-use serde::Deserialize;
+use serde_repr::Deserialize_repr;
 
-#[derive(Deserialize)]
+/// Error code when using services.
+///
+/// ```rust,ignore
+/// pub enum Respone {
+///    ...
+///    Error { code: usize, text: String },
+/// }
+/// ```
+#[derive(Deserialize_repr, Debug)]
 #[repr(u8)]
 pub enum ErrorCode {
     Timeout = 0,
@@ -14,10 +22,4 @@ pub enum ErrorCode {
     KeyAlreadyExists = 21,
     PreconditionFailed = 22,
     TxnConflict = 30,
-}
-
-#[derive(Deserialize)]
-#[serde(tag = "type")]
-pub enum ErrorRespone {
-    Error { code: usize, text: String },
 }
