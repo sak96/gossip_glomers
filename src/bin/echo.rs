@@ -1,24 +1,22 @@
 use std::io::{stdin, stdout};
 
 use gossip_glomers::{
+    derive_request, derive_response,
     init::init,
     message::{Body, Message},
 };
-use serde::{Deserialize, Serialize};
 
-// TODO: move these decoration to some macro.
-#[derive(Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum EchoRequest {
-    Echo { echo: String },
-}
+derive_request!(
+    pub enum EchoRequest {
+        Echo { echo: String },
+    }
+);
 
-// TODO: move these decoration to some macro.
-#[derive(Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum EchoRespone {
-    EchoOk { echo: String },
-}
+derive_response!(
+    pub enum EchoRespone {
+        EchoOk { echo: String },
+    }
+);
 
 fn main() {
     let stdin = stdin().lock();

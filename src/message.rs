@@ -46,3 +46,21 @@ impl<Payload: DeserializeOwned> Message<Payload> {
         })
     }
 }
+
+#[macro_export]
+macro_rules! derive_request {
+    ($vis:vis enum $name:ident $body:tt ) => {
+        #[derive(::serde::Deserialize, Debug)]
+        #[serde(tag = "type", rename_all = "snake_case")]
+        $vis enum $name $body
+    };
+}
+
+#[macro_export]
+macro_rules! derive_response {
+    ($vis:vis enum $name:ident $body:tt ) => {
+        #[derive(::serde::Serialize, Debug)]
+        #[serde(tag = "type", rename_all = "snake_case")]
+        $vis enum $name $body
+    };
+}

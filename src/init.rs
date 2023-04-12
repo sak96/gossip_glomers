@@ -1,23 +1,22 @@
-use serde::{Deserialize, Serialize};
+use crate::{
+    derive_request, derive_response,
+    message::{Body, Message},
+};
 
-use crate::message::{Body, Message};
+derive_request!(
+    pub enum InitRequest {
+        Init {
+            node_id: String,
+            node_ids: Vec<String>,
+        },
+    }
+);
 
-// TODO: move these decoration to some macro.
-#[derive(Deserialize, Debug)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum InitRequest {
-    Init {
-        node_id: String,
-        node_ids: Vec<String>,
-    },
-}
-
-// TODO: move these decoration to some macro.
-#[derive(Serialize, Debug)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum InitRespone {
-    InitOk,
-}
+derive_response!(
+    pub enum InitRespone {
+        InitOk,
+    }
+);
 
 pub fn init<'a, W: std::io::Write, R: serde_json::de::Read<'a>>(
     writer: &mut W,

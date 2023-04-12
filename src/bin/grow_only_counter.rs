@@ -5,54 +5,53 @@ use std::{
 };
 
 use gossip_glomers::{
+    derive_request, derive_response,
     error::ErrorCode,
     init::{init, InitRequest},
     message::{Body, Message},
 };
-use serde::{Deserialize, Serialize};
-// TODO: move these decoration to some macro.
-#[derive(Deserialize, Debug)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum CounterRequest {
-    Add {
-        delta: usize,
-    },
-    Read,
-    #[serde(rename = "read_ok")]
-    KeyValue {
-        value: usize,
-    },
-    #[serde(rename = "cas_ok")]
-    UpdateSuccess,
-    Error {
-        code: ErrorCode,
-        text: String,
-    },
-}
 
-// TODO: move these decoration to some macro.
-#[derive(Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum CounterRespone {
-    AddOk,
-    #[serde(rename = "read")]
-    GetKey {
-        key: String,
-    },
-    #[serde(rename = "cas")]
-    UpdateValueFrom {
-        key: String,
-        #[serde(rename = "from")]
-        old: usize,
-        #[serde(rename = "to")]
-        new: usize,
-        #[serde(rename = "create_if_not_exists")]
-        create: bool,
-    },
-    ReadOk {
-        value: usize,
-    },
-}
+derive_request!(
+    pub enum CounterRequest {
+        Add {
+            delta: usize,
+        },
+        Read,
+        #[serde(rename = "read_ok")]
+        KeyValue {
+            value: usize,
+        },
+        #[serde(rename = "cas_ok")]
+        UpdateSuccess,
+        Error {
+            code: ErrorCode,
+            text: String,
+        },
+    }
+);
+
+derive_response!(
+    pub enum CounterRespone {
+        AddOk,
+        #[serde(rename = "read")]
+        GetKey {
+            key: String,
+        },
+        #[serde(rename = "cas")]
+        UpdateValueFrom {
+            key: String,
+            #[serde(rename = "from")]
+            old: usize,
+            #[serde(rename = "to")]
+            new: usize,
+            #[serde(rename = "create_if_not_exists")]
+            create: bool,
+        },
+        ReadOk {
+            value: usize,
+        },
+    }
+);
 
 const KV_NODE: &str = "seq-kv";
 const KEY: &str = "COUNTER";

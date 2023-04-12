@@ -6,41 +6,40 @@ use std::{
 };
 
 use gossip_glomers::{
+    derive_request, derive_response,
     init::{init, InitRequest},
     message::{Body, Message},
 };
-use serde::{Deserialize, Serialize};
-// TODO: move these decoration to some macro.
-#[derive(Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum BroadCastRequest {
-    Broadcast {
-        message: usize,
-    },
-    Read,
-    Topology {
-        topology: HashMap<String, Vec<String>>,
-    },
-    Gossip {
-        seen: HashSet<usize>,
-        you_saw: Vec<usize>,
-    },
-}
 
-// TODO: move these decoration to some macro.
-#[derive(Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum BroadCastRespone {
-    BroadcastOk,
-    ReadOk {
-        messages: HashSet<usize>,
-    },
-    TopologyOk,
-    Gossip {
-        seen: Vec<usize>,
-        you_saw: Vec<usize>,
-    },
-}
+derive_request!(
+    pub enum BroadCastRequest {
+        Broadcast {
+            message: usize,
+        },
+        Read,
+        Topology {
+            topology: HashMap<String, Vec<String>>,
+        },
+        Gossip {
+            seen: HashSet<usize>,
+            you_saw: Vec<usize>,
+        },
+    }
+);
+
+derive_response!(
+    pub enum BroadCastRespone {
+        BroadcastOk,
+        ReadOk {
+            messages: HashSet<usize>,
+        },
+        TopologyOk,
+        Gossip {
+            seen: Vec<usize>,
+            you_saw: Vec<usize>,
+        },
+    }
+);
 
 pub enum Event {
     Tick,
