@@ -20,20 +20,22 @@ pub struct Options {
 #[derive(Clone, ValueEnum, Parser, Debug)]
 #[clap(rename_all = "snake_case")]
 pub enum Challange {
-    /// Build and run echo challenge
+    /// Echo challenge
     Echo,
-    /// Build and run unique id challenge
+    /// Unique id challenge
     UniqueId,
-    /// Build and run single broadcast challenge
+    /// Single broadcast challenge
     SingleBroadcast,
-    /// Build and run multi broadcast challenge
+    /// Multi broadcast challenge
     MultiBroadcast,
-    /// Build and run faulty broadcast challenge
+    /// Faulty broadcast challenge
     FaultyBroadcast,
-    /// Build and run efficient broadcast challenge
+    /// Efficient broadcast challenge
     EfficientBroadcast,
-    /// Build and run efficient broadcast two challenge
+    /// Efficient broadcast two challenge
     EfficientBroadcast2,
+    /// Grow Only Counter
+    GrowOnlyCounter,
 }
 
 impl Challange {
@@ -44,6 +46,7 @@ impl Challange {
             UniqueId => "unique_id",
             SingleBroadcast | MultiBroadcast | FaultyBroadcast | EfficientBroadcast
             | EfficientBroadcast2 => "broadcast",
+            GrowOnlyCounter => "grow_only_counter",
         }
         .to_string()
     }
@@ -160,8 +163,8 @@ fn get_maelstrom_args<'a>(challange: &Challange, bin_path: &'a str) -> Vec<&'a s
                 "100",
                 "--latency",
                 "100",
-                "--topology",
-                "total",
+                // "--topology",
+                // "total",
             ]
         }
         EfficientBroadcast2 => {
@@ -180,6 +183,23 @@ fn get_maelstrom_args<'a>(challange: &Challange, bin_path: &'a str) -> Vec<&'a s
                 "100",
                 "--latency",
                 "100",
+            ]
+        }
+        GrowOnlyCounter => {
+            vec![
+                "test",
+                "-w",
+                "g-counter",
+                "--bin",
+                bin_path,
+                "--node-count",
+                "3",
+                "--rate",
+                "100",
+                "--time-limit",
+                "20",
+                "--nemesis",
+                "partition",
             ]
         }
     }
