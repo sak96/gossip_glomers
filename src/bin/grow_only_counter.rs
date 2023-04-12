@@ -1,4 +1,3 @@
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::{
     io::{stdin, stdout},
     sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender},
@@ -6,21 +5,28 @@ use std::{
 };
 
 use gossip_glomers::{
+    error::ErrorCode,
     init::{init, InitRequest},
     message::{Body, Message},
 };
 use serde::{Deserialize, Serialize};
 // TODO: move these decoration to some macro.
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CounterRequest {
     Add {
         delta: usize,
     },
     Read,
-    Gossip {
-        seen: Vec<(String, usize)>,
-        you_saw: Vec<String>,
+    #[serde(rename = "read_ok")]
+    KeyValue {
+        value: usize,
+    },
+    #[serde(rename = "cas_ok")]
+    UpdateSuccess,
+    Error {
+        code: ErrorCode,
+        text: String,
     },
 }
 
@@ -29,14 +35,27 @@ pub enum CounterRequest {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CounterRespone {
     AddOk,
+    #[serde(rename = "read")]
+    GetKey {
+        key: String,
+    },
+    #[serde(rename = "cas")]
+    UpdateValueFrom {
+        key: String,
+        #[serde(rename = "from")]
+        old: usize,
+        #[serde(rename = "to")]
+        new: usize,
+        #[serde(rename = "create_if_not_exists")]
+        create: bool,
+    },
     ReadOk {
         value: usize,
     },
-    Gossip {
-        seen: Vec<(String, usize)>,
-        you_saw: Vec<String>,
-    },
 }
+
+const KV_NODE: &str = "seq-kv";
+const KEY: &str = "COUNTER";
 
 pub enum Event {
     Tick,
@@ -46,71 +65,81 @@ pub enum Event {
 
 #[allow(dead_code)]
 struct EventHandler {
-    node: String,
     id: usize,
+    node: String,
     value: usize,
-    seen: HashSet<String>,
-    known: Vec<(String, HashMap<String, usize>, HashSet<String>)>,
+    delta: usize,
+    last_update: Option<(usize, usize, usize)>,
 }
 
 impl EventHandler {
     pub fn new(id: usize, init_request: InitRequest) -> Self {
-        let (node, node_ids) = match init_request {
+        let (node, _) = match init_request {
             InitRequest::Init { node_id, node_ids } => (node_id, node_ids),
         };
+
         Self {
-            known: node_ids
-                .into_iter()
-                .map(|nid| (nid, HashMap::default(), HashSet::default()))
-                .collect(),
-            seen: HashSet::default(),
-            value: 0,
-            node,
             id,
+            value: 0,
+            delta: 0,
+            node,
+            last_update: None,
         }
     }
 
     fn handle_input_payload(
         &mut self,
         payload: CounterRequest,
-        src: &str,
+        _src: &str,
         tick_tx: &mut Sender<()>,
     ) -> Option<CounterRespone> {
         match payload {
             CounterRequest::Add { delta } => {
-                // FIXME: Use key store to store data.
-                let msg_id = format!("{}{}", self.node, self.id);
-                if self.seen.insert(msg_id.clone()) {
-                    for (_, known, _) in self.known.iter_mut() {
-                        known.insert(msg_id.clone(), delta);
-                    }
-                    self.value += delta;
-                    tick_tx.send(()).expect("failed to tick");
-                }
+                self.delta += delta;
                 Some(CounterRespone::AddOk)
             }
-            CounterRequest::Read => Some(CounterRespone::ReadOk { value: self.value }),
-            CounterRequest::Gossip { seen, you_saw } => {
-                for (node, known, last_sent) in self.known.iter_mut() {
-                    if node != src {
-                        continue;
-                    }
-                    for msg_id in you_saw.iter() {
-                        known.remove(msg_id);
-                    }
-                    let mut delta = 0;
-                    last_sent.drain();
-                    for (id, d) in seen.iter() {
-                        if self.seen.insert(id.clone()) {
-                            delta += d;
-                        }
-                        last_sent.insert(id.clone());
-                    }
-                    if delta > 0 {
-                        self.value += delta;
-                        tick_tx.send(()).expect("failed to tick");
-                    }
+            CounterRequest::Read => {
+                tick_tx.send(()).expect("force ticking failed");
+                Some(CounterRespone::ReadOk {
+                    value: self.value + self.delta,
+                })
+            }
+            CounterRequest::Error { code, .. } => match code {
+                ErrorCode::KeyDoesNotExist => Some(CounterRespone::UpdateValueFrom {
+                    key: KEY.into(),
+                    old: 0,
+                    new: 0,
+                    create: true,
+                }),
+                ErrorCode::PreconditionFailed
+                | ErrorCode::Timeout
+                | ErrorCode::KeyAlreadyExists => {
+                    if let Some((_, old, new)) = self.last_update.take() {
+                        self.delta += new - old;
+                        tick_tx.send(()).expect("force ticking failed");
+                    };
+                    None
                 }
+                error => panic!("Unhandled error code: {:?}", error),
+            },
+            CounterRequest::KeyValue { value } => {
+                if self.delta > 0 {
+                    self.value = value + self.delta;
+                    self.last_update = Some((self.id, value, self.value));
+                    let delta = self.delta;
+                    self.delta = 0;
+                    Some(CounterRespone::UpdateValueFrom {
+                        key: KEY.into(),
+                        old: value,
+                        new: value + delta,
+                        create: false,
+                    })
+                } else {
+                    None
+                }
+            }
+            CounterRequest::UpdateSuccess => {
+                self.last_update.take();
                 None
             }
         }
@@ -127,26 +156,32 @@ impl EventHandler {
                     break;
                 }
                 Event::Tick => {
-                    for (peer, known, last_sent) in self.known.iter_mut() {
-                        let payload = match (
-                            known.iter().map(|(x, y)| (x.clone(), *y)).collect::<Vec<_>>(),
-                            last_sent.drain().collect::<Vec<_>>(),
-                        ) {
-                            (seen, you_saw) if seen.is_empty() & you_saw.is_empty() => continue,
-                            (seen, you_saw) => CounterRespone::Gossip { seen, you_saw },
-                        };
-                        let response = Message {
-                            body: Body {
-                                id: None,
-                                reply_id: None,
-                                payload,
+                    let key = KEY.into();
+                    let (payload, msg_id) = if let Some((msg_id, old, new)) = self.last_update {
+                        (
+                            CounterRespone::UpdateValueFrom {
+                                key,
+                                old,
+                                new,
+                                create: false,
                             },
-                            src: self.node.to_string(),
-                            dst: peer.to_string(),
-                        };
-                        response.send(writer);
+                            msg_id,
+                        )
+                    } else {
+                        let id = self.id;
                         self.id += 1;
-                    }
+                        (CounterRespone::GetKey { key }, id)
+                    };
+                    let response = Message {
+                        body: Body {
+                            id: Some(msg_id),
+                            reply_id: None,
+                            payload,
+                        },
+                        src: self.node.clone(),
+                        dst: KV_NODE.into(),
+                    };
+                    response.send(writer);
                 }
                 Event::Input(request) => {
                     if let Some(payload) =
@@ -175,7 +210,7 @@ pub fn ticker(event_tx: Sender<Event>, tick_rx: Receiver<()>) {
     let duration = std::env::var("TICK_TIME")
         .ok()
         .and_then(|x| x.parse().ok())
-        .unwrap_or(10);
+        .unwrap_or(300);
     while matches!(
         tick_rx.recv_timeout(Duration::from_millis(duration)),
         Err(RecvTimeoutError::Timeout) | Ok(_)
@@ -188,11 +223,13 @@ pub fn ticker(event_tx: Sender<Event>, tick_rx: Receiver<()>) {
 }
 
 pub fn input_recv(event_tx: Sender<Event>) {
-    let stdin = stdin().lock();
-    let deseralizer = serde_json::Deserializer::from_reader(stdin);
-    for input_request in deseralizer.into_iter().flatten() {
-        if event_tx.send(Event::Input(input_request)).is_err() {
-            break;
+    {
+        let stdin = stdin().lock();
+        let deseralizer = serde_json::Deserializer::from_reader(stdin);
+        for input_request in deseralizer.into_iter().flatten() {
+            if event_tx.send(Event::Input(input_request)).is_err() {
+                break;
+            }
         }
     }
     event_tx.send(Event::Close).expect("failed to close");
@@ -213,5 +250,5 @@ fn main() {
         move || ticker(event_tx, tick_rx)
     });
     std::thread::spawn(move || input_recv(event_tx));
-    EventHandler::new(id, init_request).handle_events(event_rx, tick_tx, &mut stdout);
+    EventHandler::new(id + 1, init_request).handle_events(event_rx, tick_tx, &mut stdout);
 }
