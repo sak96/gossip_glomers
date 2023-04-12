@@ -63,7 +63,6 @@ pub enum Event {
     Input(Message<CounterRequest>),
 }
 
-#[allow(dead_code)]
 struct EventHandler {
     id: usize,
     node: String,
@@ -205,7 +204,6 @@ impl EventHandler {
     }
 }
 
-#[allow(unreachable_code, unused_variables)]
 pub fn ticker(event_tx: Sender<Event>, tick_rx: Receiver<()>) {
     let duration = std::env::var("TICK_TIME")
         .ok()
