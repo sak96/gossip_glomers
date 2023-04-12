@@ -1,7 +1,7 @@
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::{
     io::{stdin, stdout},
-    sync::mpsc::{channel, sync_channel, Receiver, RecvTimeoutError, Sender, SyncSender},
+    sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender},
     time::Duration,
 };
 
@@ -44,6 +44,7 @@ pub enum BroadCastRespone {
 
 pub enum Event {
     Tick,
+    Close,
     Input(Message<BroadCastRequest>),
 }
 
@@ -77,10 +78,13 @@ impl EventHandler {
         &mut self,
         payload: BroadCastRequest,
         src: &str,
+        tick_tx: &mut Sender<()>,
     ) -> Option<BroadCastRespone> {
         match payload {
             BroadCastRequest::Broadcast { message } => {
-                self.messages.insert(message);
+                if self.messages.insert(message) {
+                    tick_tx.send(()).expect("failed to tick");
+                }
                 Some(BroadCastRespone::BroadcastOk)
             }
             BroadCastRequest::Read => Some(BroadCastRespone::ReadOk {
@@ -95,15 +99,26 @@ impl EventHandler {
             BroadCastRequest::Gossip { seen, you_saw } => {
                 let (known, last_sent) = self.known.get_mut(src).expect("node are pre-determined");
                 known.extend(you_saw.iter());
-                self.messages.extend(seen.iter().copied());
+                if !self.messages.is_superset(&seen) {
+                    self.messages.extend(seen.iter().copied());
+                    tick_tx.send(()).expect("failed to tick");
+                }
                 *last_sent = seen;
                 None
             }
         }
     }
-    pub fn handle_events<W: std::io::Write>(&mut self, rx: Receiver<Event>, writer: &mut W) {
+    pub fn handle_events<W: std::io::Write>(
+        &mut self,
+        rx: Receiver<Event>,
+        mut tick_tx: Sender<()>,
+        writer: &mut W,
+    ) {
         for event in rx.iter() {
             match event {
+                Event::Close => {
+                    break;
+                }
                 Event::Tick => {
                     for peer in self.peers.iter() {
                         let (known, last_sent) =
@@ -130,7 +145,7 @@ impl EventHandler {
                 }
                 Event::Input(request) => {
                     if let Some(payload) =
-                        self.handle_input_payload(request.body.payload, &request.src)
+                        self.handle_input_payload(request.body.payload, &request.src, &mut tick_tx)
                     {
                         let response = Message {
                             body: Body {
@@ -151,21 +166,23 @@ impl EventHandler {
 }
 
 #[allow(unreachable_code, unused_variables)]
-pub fn ticker(event_tx: Sender<Event>, close_rx: Receiver<()>) {
+pub fn ticker(event_tx: Sender<Event>, tick_rx: Receiver<()>) {
     let duration = std::env::var("TICK_TIME")
         .ok()
         .and_then(|x| x.parse().ok())
         .unwrap_or(300);
-    while let Err(RecvTimeoutError::Timeout) =
-        close_rx.recv_timeout(Duration::from_millis(duration))
-    {
+    while matches!(
+        tick_rx.recv_timeout(Duration::from_millis(duration)),
+        Err(RecvTimeoutError::Timeout) | Ok(_)
+    ) {
+        tick_rx.try_iter().fuse().for_each(drop);
         event_tx
             .send(Event::Tick)
             .expect("Message should be passed!");
     }
 }
 
-pub fn input_recv(event_tx: Sender<Event>, close_tx: SyncSender<()>) {
+pub fn input_recv(event_tx: Sender<Event>) {
     let stdin = stdin().lock();
     let deseralizer = serde_json::Deserializer::from_reader(stdin);
     for input_request in deseralizer.into_iter().flatten() {
@@ -173,7 +190,7 @@ pub fn input_recv(event_tx: Sender<Event>, close_tx: SyncSender<()>) {
             break;
         }
     }
-    drop(close_tx);
+    event_tx.send(Event::Close).expect("failed to close");
 }
 
 fn main() {
@@ -185,11 +202,11 @@ fn main() {
         init(&mut stdout, &mut deseralizer, Some(id))
     };
     let (event_tx, event_rx) = channel();
-    let (close_tx, close_rx) = sync_channel(1);
+    let (tick_tx, tick_rx) = channel();
     std::thread::spawn({
         let event_tx = event_tx.clone();
-        move || ticker(event_tx, close_rx)
+        move || ticker(event_tx, tick_rx)
     });
-    std::thread::spawn(move || input_recv(event_tx, close_tx));
-    EventHandler::new(id, init_request).handle_events(event_rx, &mut stdout);
+    std::thread::spawn(move || input_recv(event_tx));
+    EventHandler::new(id, init_request).handle_events(event_rx, tick_tx, &mut stdout);
 }
