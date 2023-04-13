@@ -41,14 +41,15 @@ pub enum Challange {
 
 impl Challange {
     pub fn get_name(&self) -> String {
-        use Challange::*;
-
         match self {
-            Echo => "echo",
-            UniqueIds => "unique_ids",
-            SingleBroadcast | MultiBroadcast | FaultyBroadcast | EfficientBroadcast
-            | EfficientBroadcast2 => "broadcast",
-            GrowOnlyCounter => "g_counter",
+            Challange::Echo => "echo",
+            Challange::UniqueIds => "unique_ids",
+            Challange::SingleBroadcast
+            | Challange::MultiBroadcast
+            | Challange::FaultyBroadcast
+            | Challange::EfficientBroadcast
+            | Challange::EfficientBroadcast2 => "broadcast",
+            Challange::GrowOnlyCounter => "g_counter",
         }
         .to_string()
     }
@@ -58,7 +59,7 @@ impl Challange {
 fn build(release: bool, bin_name: &str) {
     let mut args = vec!["build", "--bin", bin_name];
     if release {
-        args.push("--release")
+        args.push("--release");
     }
     let status = Command::new("cargo")
         .args(&args)
@@ -140,45 +141,56 @@ pub fn run(opts: Options) {
     let profile = if opts.release { "release" } else { "debug" };
     let bin_name = opts.challange.get_name();
     build(opts.release, &bin_name);
-    use Challange::*;
     match opts.challange {
-        Echo => MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 1, 10).execute(),
-        UniqueIds => MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 3, 30)
-            .partition()
-            .rate(1000)
-            .total_availability()
-            .execute(),
-        SingleBroadcast => MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 1, 20)
-            .rate(10)
-            .execute(),
-        MultiBroadcast => MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 5, 20)
-            .rate(10)
-            .execute(),
-        FaultyBroadcast => MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 5, 20)
-            .rate(10)
-            .partition()
-            .execute(),
-        EfficientBroadcast => {
+        Challange::Echo => {
+            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 1, 10).execute();
+        }
+        Challange::UniqueIds => {
+            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 3, 30)
+                .partition()
+                .rate(1000)
+                .total_availability()
+                .execute();
+        }
+        Challange::SingleBroadcast => {
+            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 1, 20)
+                .rate(10)
+                .execute();
+        }
+        Challange::MultiBroadcast => {
+            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 5, 20)
+                .rate(10)
+                .execute();
+        }
+        Challange::FaultyBroadcast => {
+            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 5, 20)
+                .rate(10)
+                .partition()
+                .execute();
+        }
+        Challange::EfficientBroadcast => {
             MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 25, 20)
                 .rate(100)
                 .latency(100)
                 .topology("total")
                 .partition()
-                .execute()
+                .execute();
         }
-        EfficientBroadcast2 => {
+        Challange::EfficientBroadcast2 => {
             MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 25, 20)
                 .rate(100)
                 .env("TICK_TIME", "100")
                 .latency(100)
                 .topology("total")
                 .partition()
-                .execute()
+                .execute();
         }
-        GrowOnlyCounter => MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 3, 20)
-            .rate(100)
-            .partition()
-            .execute(),
+        Challange::GrowOnlyCounter => {
+            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 3, 20)
+                .rate(100)
+                .partition()
+                .execute();
+        }
     }
 }
 
@@ -190,5 +202,5 @@ pub fn list() {
             .iter()
             .map(|var| format!("{}\n", var.to_possible_value().unwrap().get_name()))
             .collect::<String>()
-    )
+    );
 }
