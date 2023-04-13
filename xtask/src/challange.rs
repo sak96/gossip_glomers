@@ -1,6 +1,7 @@
 use std::{path::PathBuf, process::Command};
 
 use clap::{Parser, ValueEnum};
+use convert_case::{Case, Casing};
 
 #[derive(Parser, Debug)]
 pub struct Options {
@@ -23,7 +24,7 @@ pub enum Challange {
     /// Echo challenge
     Echo,
     /// Unique id challenge
-    UniqueId,
+    UniqueIds,
     /// Single broadcast challenge
     SingleBroadcast,
     /// Multi broadcast challenge
@@ -41,20 +42,21 @@ pub enum Challange {
 impl Challange {
     pub fn get_name(&self) -> String {
         use Challange::*;
+
         match self {
             Echo => "echo",
-            UniqueId => "unique_id",
+            UniqueIds => "unique_ids",
             SingleBroadcast | MultiBroadcast | FaultyBroadcast | EfficientBroadcast
             | EfficientBroadcast2 => "broadcast",
-            GrowOnlyCounter => "grow_only_counter",
+            GrowOnlyCounter => "g_counter",
         }
         .to_string()
     }
 }
 
 /// Builds the project
-fn build(release: bool, bin_name: String) {
-    let mut args = vec!["build", "--bin", &bin_name];
+fn build(release: bool, bin_name: &str) {
+    let mut args = vec!["build", "--bin", bin_name];
     if release {
         args.push("--release")
     }
@@ -65,143 +67,71 @@ fn build(release: bool, bin_name: String) {
     assert!(status.success());
 }
 
-/// Get maelstorm Arguments based on challenge
-fn get_maelstrom_args<'a>(challange: &Challange, bin_path: &'a str) -> Vec<&'a str> {
-    use Challange::*;
-    match challange {
-        Echo => {
-            vec![
-                "test",
-                "-w",
-                "echo",
-                "--bin",
-                bin_path,
-                "--node-count",
-                "1",
-                "--time-limit",
-                "10",
-            ]
-        }
-        UniqueId => {
-            vec![
-                "test",
-                "-w",
-                "unique-ids",
-                "--bin",
-                bin_path,
-                "--time-limit",
-                "30",
-                "--rate",
-                "1000",
-                "--node-count",
-                "3",
-                "--availability",
-                "total",
-                "--nemesis",
-                "partition",
-            ]
-        }
-        SingleBroadcast => {
-            vec![
-                "test",
-                "-w",
-                "broadcast",
-                "--bin",
-                bin_path,
-                "--time-limit",
-                "20",
-                "--rate",
-                "10",
-                "--node-count",
-                "1",
-            ]
-        }
-        MultiBroadcast => {
-            vec![
-                "test",
-                "-w",
-                "broadcast",
-                "--bin",
-                bin_path,
-                "--node-count",
-                "5",
-                "--time-limit",
-                "20",
-                "--rate",
-                "10",
-            ]
-        }
-        FaultyBroadcast => {
-            vec![
-                "test",
-                "-w",
-                "broadcast",
-                "--bin",
-                bin_path,
-                "--node-count",
-                "5",
-                "--time-limit",
-                "20",
-                "--rate",
-                "10",
-                "--nemesis",
-                "partition",
-            ]
-        }
-        EfficientBroadcast => {
-            vec![
-                "test",
-                "-w",
-                "broadcast",
-                "--bin",
-                bin_path,
-                "--node-count",
-                "25",
-                "--time-limit",
-                "20",
-                "--rate",
-                "100",
-                "--latency",
-                "100",
-                // "--topology",
-                // "total",
-            ]
-        }
-        EfficientBroadcast2 => {
-            std::env::set_var("TICK_TIME", "100");
-            vec![
-                "test",
-                "-w",
-                "broadcast",
-                "--bin",
-                bin_path,
-                "--node-count",
-                "25",
-                "--time-limit",
-                "20",
-                "--rate",
-                "100",
-                "--latency",
-                "100",
-            ]
-        }
-        GrowOnlyCounter => {
-            vec![
-                "test",
-                "-w",
-                "g-counter",
-                "--bin",
-                bin_path,
-                "--node-count",
-                "3",
-                "--rate",
-                "100",
-                "--time-limit",
-                "20",
-                "--nemesis",
-                "partition",
-            ]
-        }
+struct MaelStormCommand(Command);
+
+impl MaelStormCommand {
+    /// create command to execute maelstorm.
+    pub fn new(
+        maelstorm_bin: &PathBuf,
+        profile: &str,
+        bin_name: &str,
+        node_count: usize,
+        time_limit: usize,
+    ) -> Self {
+        let bin_path = format!("{}/{}/{}", env!("CARGO_TARGET_DIR"), profile, bin_name);
+        let mut command = Command::new(maelstorm_bin);
+        command
+            .arg("test")
+            .args(["-w", &bin_name.to_case(Case::Kebab)])
+            .args(["--bin", &bin_path])
+            .args(["--node-count", &node_count.to_string()])
+            .args(["--time-limit", &time_limit.to_string()]);
+        Self(command)
+    }
+
+    /// set any environment variable required by maelstorm or binary.
+    pub fn env(mut self, key: &str, value: &str) -> Self {
+        self.0.env(key, value);
+        self
+    }
+
+    /// Add partitioning.
+    pub fn partition(mut self) -> Self {
+        self.0.args(["--nemesis", "partition"]);
+        self
+    }
+
+    /// Set total availability.
+    pub fn total_availability(mut self) -> Self {
+        self.0.args(["--availability", "total"]);
+        self
+    }
+
+    /// Changes rate.
+    pub fn rate(mut self, rate: usize) -> Self {
+        self.0.args(["--rate", &rate.to_string()]);
+        self
+    }
+
+    /// Changes latency.
+    pub fn latency(mut self, latency: usize) -> Self {
+        self.0.args(["--latency", &latency.to_string()]);
+        self
+    }
+
+    /// Changes topology.
+    pub fn topology(mut self, topology: &str) -> Self {
+        self.0.args(["--topology", topology]);
+        self
+    }
+
+    /// Executes command and makes sure it was a success.
+    pub fn execute(self) {
+        let mut command = self.0;
+        let status = command
+            .status()
+            .unwrap_or_else(|_| panic!("command invocation failed {command:?}!"));
+        assert!(status.success());
     }
 }
 
@@ -209,13 +139,47 @@ fn get_maelstrom_args<'a>(challange: &Challange, bin_path: &'a str) -> Vec<&'a s
 pub fn run(opts: Options) {
     let profile = if opts.release { "release" } else { "debug" };
     let bin_name = opts.challange.get_name();
-    let bin_path = format!("{}/{}/{}", env!("CARGO_TARGET_DIR"), profile, bin_name);
-    build(opts.release, bin_name);
-    let status = Command::new(opts.maelstrom_bin)
-        .args(&get_maelstrom_args(&opts.challange, &bin_path))
-        .status()
-        .expect("failed to run!");
-    assert!(status.success());
+    build(opts.release, &bin_name);
+    use Challange::*;
+    match opts.challange {
+        Echo => MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 1, 10).execute(),
+        UniqueIds => MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 3, 30)
+            .partition()
+            .rate(1000)
+            .total_availability()
+            .execute(),
+        SingleBroadcast => MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 1, 20)
+            .rate(10)
+            .execute(),
+        MultiBroadcast => MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 5, 20)
+            .rate(10)
+            .execute(),
+        FaultyBroadcast => MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 5, 20)
+            .rate(10)
+            .partition()
+            .execute(),
+        EfficientBroadcast => {
+            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 25, 20)
+                .rate(100)
+                .latency(100)
+                .topology("total")
+                .partition()
+                .execute()
+        }
+        EfficientBroadcast2 => {
+            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 25, 20)
+                .rate(100)
+                .env("TICK_TIME", "100")
+                .latency(100)
+                .topology("total")
+                .partition()
+                .execute()
+        }
+        GrowOnlyCounter => MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 3, 20)
+            .rate(100)
+            .partition()
+            .execute(),
+    }
 }
 
 /// list challenges
