@@ -117,7 +117,7 @@ impl EventHandler {
                     };
                     None
                 }
-                error => panic!("Unhandled error code: {:?}", error),
+                error => panic!("Unhandled error code: {error:?}"),
             },
             CounterRequest::KeyValue { value } => {
                 self.value = value + self.delta;

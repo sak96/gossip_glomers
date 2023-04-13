@@ -34,7 +34,7 @@ fn main() {
                     id: Some(id),
                     reply_id: request.body.id,
                     payload: GenRespone::GenerateOk {
-                        id: format!("{}/{}", node_id, id),
+                        id: format!("{node_id}/{id}"),
                     },
                 },
             },

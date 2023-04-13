@@ -118,7 +118,7 @@ impl EventHandler {
                     break;
                 }
                 Event::Tick => {
-                    for peer in self.peers.iter() {
+                    for peer in &self.peers {
                         let (known, last_sent) =
                             self.known.get_mut(peer).expect("node are pre-determined");
                         let payload = match (
