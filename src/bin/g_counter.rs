@@ -217,13 +217,11 @@ pub fn ticker(event_tx: Sender<Event>, tick_rx: Receiver<()>) {
 }
 
 pub fn input_recv(event_tx: Sender<Event>) {
-    {
-        let stdin = stdin().lock();
-        let deseralizer = serde_json::Deserializer::from_reader(stdin);
-        for input_request in deseralizer.into_iter().flatten() {
-            if event_tx.send(Event::Input(input_request)).is_err() {
-                break;
-            }
+    let stdin = stdin().lock();
+    let deseralizer = serde_json::Deserializer::from_reader(stdin);
+    for input_request in deseralizer.into_iter().flatten() {
+        if event_tx.send(Event::Input(input_request)).is_err() {
+            break;
         }
     }
     event_tx.send(Event::Close).expect("failed to close");

@@ -24,7 +24,7 @@ fn main() {
     let mut stdout = stdout().lock();
     let _init = init(&mut stdout, &mut deseralizer, None);
     for (id, request) in deseralizer.into_iter::<Message<_>>().flatten().enumerate() {
-        let response = match request.body.payload {
+        match request.body.payload {
             EchoRequest::Echo { echo } => Message {
                 src: request.dst,
                 dst: request.src,
@@ -34,7 +34,7 @@ fn main() {
                     payload: EchoRespone::EchoOk { echo },
                 },
             },
-        };
-        response.send(&mut stdout);
+        }
+        .send(&mut stdout);
     }
 }
