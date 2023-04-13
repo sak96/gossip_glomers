@@ -6,9 +6,8 @@ use std::{
 
 use gossip_glomers::{
     derive_request, derive_response,
-    error::ErrorCode,
     init::{init, InitRequest},
-    message::{Body, Message},
+    message::{Body, ErrorCode, Message},
 };
 
 derive_request!(
