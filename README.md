@@ -1,12 +1,14 @@
 #  Gossip Glomers
 
-![Lint and Deploy docs](https://github.com/sak96/gossip_glomers/actions/workflows/main.yml/badge.svg)
-![License](https://img.shields.io/badge/License-Apache_2.0-yellowgreen.svg)
-![Top Language](https://img.shields.io/github/languages/top/sak96/gossip_glomers)
+![Lint and Deploy docs](https://github.com/sak96/gossip_glomers/actions/workflows/main.yml/badge.svg?style=flat-square)
+![License](https://img.shields.io/badge/License-Apache_2.0-yellowgreen.svg?style=flat-square)
+![Top Language](https://img.shields.io/github/languages/top/sak96/gossip_glomers?style=flat-square)
 
 `Gossip Glomers` is series of distributed systems challenges.
-This project tries to implement the same using Rust language.
 More details of these challenges can be found at [Fly.io](https://fly.io/dist-sys/).
+
+This repository tries to implement the same using Rust language.
+Documentation for the repository can be found in [GitHub pages](https://sak96.github.io/gossip_glomers/).
 
 # Usage
 
