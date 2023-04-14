@@ -1,7 +1,8 @@
 #  Gossip Glomers
 
-A series of distributed systems challenges brought to you by [Fly.io](https://fly.io/dist-sys/).
+`Gossip Glomers` is series of distributed systems challenges.
 This project tries to implement the same using Rust language.
+More details of these challenges can be found at [Fly.io](https://fly.io/dist-sys/).
 
 # Usage
 
