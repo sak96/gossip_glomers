@@ -78,6 +78,14 @@ impl<Payload: DeserializeOwned> Message<Payload> {
 ///     * uses `snake_case` for de-serialize
 /// * Debug
 ///
+/// # Example
+/// ```rust
+/// derive_request!{
+///   pub enum Request {
+///      // .. Variations
+///   }
+/// }
+/// ```
 #[macro_export]
 macro_rules! derive_request {
     ($(#[$meta:meta])* $vis:vis enum $name:ident $body:tt ) => {
@@ -96,6 +104,14 @@ macro_rules! derive_request {
 ///     * uses `snake_case` for serialize
 /// * Debug
 ///
+/// # Example
+/// ```rust
+/// derive_response!{
+///   pub enum Respone {
+///      // .. Variations
+///   }
+/// }
+/// ```
 #[macro_export]
 macro_rules! derive_response {
     ($(#[$meta:meta])* $vis:vis enum $name:ident $body:tt ) => {
@@ -108,9 +124,10 @@ macro_rules! derive_response {
 
 /// Error code when using services.
 ///
-/// ```rust,ignore
+/// # Example
+/// ```rust
 /// pub enum Respone {
-///    ...
+///    // .. Other Variation
 ///    Error { code: usize, text: String },
 /// }
 /// ```
