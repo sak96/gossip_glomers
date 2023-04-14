@@ -1,4 +1,4 @@
-use std::{path::PathBuf, process::Command};
+use std::{env::var, path::PathBuf, process::Command};
 
 use clap::{Parser, ValueEnum};
 use convert_case::{Case, Casing};
@@ -55,7 +55,7 @@ impl Challange {
     }
 }
 
-/// Builds the project
+/// Builds the challenge binary using cargo.
 fn build(release: bool, bin_name: &str) {
     let mut args = vec!["build", "--bin", bin_name];
     if release {
@@ -79,7 +79,12 @@ impl MaelStormCommand {
         node_count: usize,
         time_limit: usize,
     ) -> Self {
-        let bin_path = format!("{}/{}/{}", env!("CARGO_TARGET_DIR"), profile, bin_name);
+        let bin_path = format!(
+            "{}/{}/{}",
+            var("CARGO_TARGET_DIR").unwrap_or("target".to_string()),
+            profile,
+            bin_name
+        );
         let mut command = Command::new(maelstorm_bin);
         command
             .arg("test")
