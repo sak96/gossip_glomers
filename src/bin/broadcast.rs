@@ -195,7 +195,7 @@ fn main() {
     let init_request = {
         let stdin = stdin().lock();
         let mut deseralizer = serde_json::Deserializer::from_reader(stdin);
-        init(&mut stdout, &mut deseralizer, None)
+        init(&mut stdout, &mut deseralizer)
     };
     let (event_tx, event_rx) = channel();
     let (tick_tx, tick_rx) = channel();

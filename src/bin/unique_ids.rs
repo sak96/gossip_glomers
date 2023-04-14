@@ -22,7 +22,7 @@ fn main() {
     let stdin = stdin().lock();
     let mut deseralizer = serde_json::Deserializer::from_reader(stdin);
     let mut stdout = stdout().lock();
-    let node_id = match init(&mut stdout, &mut deseralizer, Some(0)) {
+    let node_id = match init(&mut stdout, &mut deseralizer) {
         InitRequest::Init { node_id, .. } => node_id,
     };
     for (id, request) in deseralizer.into_iter::<Message<_>>().flatten().enumerate() {

@@ -22,7 +22,7 @@ fn main() {
     let stdin = stdin().lock();
     let mut deseralizer = serde_json::Deserializer::from_reader(stdin);
     let mut stdout = stdout().lock();
-    let _init = init(&mut stdout, &mut deseralizer, None);
+    let _init = init(&mut stdout, &mut deseralizer);
     for (id, request) in deseralizer.into_iter::<Message<_>>().flatten().enumerate() {
         match request.body.payload {
             EchoRequest::Echo { echo } => Message {

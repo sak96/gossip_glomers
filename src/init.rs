@@ -21,14 +21,13 @@ derive_response!(
 pub fn init<'a, W: std::io::Write, R: serde_json::de::Read<'a>>(
     writer: &mut W,
     deseralizer: &mut serde_json::Deserializer<R>,
-    id: Option<usize>,
 ) -> InitRequest {
     let init_msg = Message::recv(deseralizer);
     let reply = Message {
         src: init_msg.dst,
         dst: init_msg.src,
         body: Body {
-            id,
+            id: None,
             reply_id: init_msg.body.id,
             payload: InitRespone::InitOk,
         },

@@ -71,15 +71,13 @@ struct EventHandler {
 
 impl EventHandler {
     pub fn new(init_request: InitRequest) -> Self {
-        let (node, _) = match init_request {
-            InitRequest::Init { node_id, node_ids } => (node_id, node_ids),
-        };
-
         Self {
             id: 0,
             value: 0,
             delta: 0,
-            node,
+            node: match init_request {
+                InitRequest::Init { node_id, .. } => node_id,
+            },
             last_update: None,
         }
     }
@@ -232,7 +230,7 @@ fn main() {
     let init_request = {
         let stdin = stdin().lock();
         let mut deseralizer = serde_json::Deserializer::from_reader(stdin);
-        init(&mut stdout, &mut deseralizer, None)
+        init(&mut stdout, &mut deseralizer)
     };
     let (event_tx, event_rx) = channel();
     let (tick_tx, tick_rx) = channel();
