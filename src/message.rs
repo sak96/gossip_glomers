@@ -69,7 +69,7 @@ impl<Payload: DeserializeOwned + Request> Message<Payload> {
     ) -> Self {
         Self::deserialize(deseralizer).unwrap_or_else(|_| {
             panic!(
-                "serialize response to{} failed",
+                "serialize response to {} failed",
                 std::any::type_name::<Payload>(),
             )
         })
@@ -79,20 +79,40 @@ impl<Payload: DeserializeOwned + Request> Message<Payload> {
 /// Derives trait for request `enum`.
 ///
 /// The traits derived are:
-/// * [`::serde::Deserialize`]
+/// * [::serde::Deserialize]
 ///     * uses tag as `type`.
 ///     * uses `snake_case` for de-serialize
-/// * Add Request
-/// * Debug
+/// * [Request]: allows receive Message with request payload.
+/// * [Debug]
 ///
 /// # Example
+///
 /// ```rust
 /// # use gossip_glomers::derive_request;
+/// # use gossip_glomers::message::Message;
 /// derive_request!{
-///   pub enum Request {
-///      // .. Variations
+///   #[derive(PartialEq)]
+///   pub enum PingRequest {
+///     Ping
 ///   }
 /// }
+/// let input = r#"
+///     {
+///         "src": "src",
+///         "dest": "dst",
+///         "body": {
+///             "msg_id": 1,
+///             "type": "ping"
+///         }
+///     }
+/// "#.as_bytes();
+/// let mut deserializer = serde_json::Deserializer::from_reader(input);
+/// let output = Message::<PingRequest>::recv(&mut deserializer);
+/// assert_eq!(output.src, "src", "{:?}", output);
+/// assert_eq!(output.dst, "dst", "{:?}", output);
+/// assert_eq!(output.body.id, Some(1), "{:?}", output);
+/// assert_eq!(output.body.reply_id, None, "{:?}", output);
+/// assert_eq!(output.body.payload, PingRequest::Ping, "{:?}", output);
 /// ```
 #[macro_export]
 macro_rules! derive_request {
@@ -111,16 +131,44 @@ macro_rules! derive_request {
 /// * [`::serde::Serialize`]
 ///     * uses tag as `type`.
 ///     * uses `snake_case` for serialize
-/// * Debug
+/// * [Response]: allows send Message with response payload.
+/// * [Debug]
 ///
 /// # Example
+///
 /// ```rust
 /// # use gossip_glomers::derive_response;
+/// # use gossip_glomers::message::{Message, Body};
 /// derive_response!{
-///   pub enum Respone {
-///      // .. Variations
+///   #[derive(PartialEq)]
+///   pub enum PingResponse {
+///     Pong
 ///   }
 /// }
+/// let input = Message {
+///     src: "src".to_string(),
+///     dst: "dst".to_string(),
+///     body: Body {
+///         id: Some(1),
+///         reply_id: Some(0),
+///         payload: PingResponse::Pong,
+///     }
+/// };
+/// let mut writer = Vec::new();
+/// input.send(&mut writer);
+/// let output = std::str::from_utf8(&writer).unwrap().trim();
+/// assert_eq!(output, r#"
+///     {
+///         "src": "src",
+///         "dest": "dst",
+///         "body": {
+///             "msg_id": 1,
+///             "in_reply_to": 0,
+///             "type": "pong"
+///         }
+///     }
+/// "#.chars().filter(|ch|!char::is_whitespace(*ch)).collect::<String>()
+/// );
 /// ```
 #[macro_export]
 macro_rules! derive_response {
