@@ -1,3 +1,4 @@
+//! Implements echo node using [main].
 use std::io::{stdin, stdout};
 
 use gossip_glomers::{
@@ -7,17 +8,44 @@ use gossip_glomers::{
 };
 
 derive_request!(
+    /// Request payload for echo node.
     pub enum EchoRequest {
-        Echo { echo: String },
+        /// Echo request.
+        ///
+        /// ```json
+        /// { "echo": "Please echo 35"}
+        /// ```
+        Echo {
+            /// holds the message.
+            echo: String,
+        },
     }
 );
 
 derive_response!(
-    pub enum EchoRespone {
-        EchoOk { echo: String },
+    /// Response payload for echo node.
+    pub enum EchoResponse {
+        /// Echo ok response.
+        ///
+        /// ```json
+        /// {
+        ///     "type": "echo_ok",
+        ///     "echo": "Please echo 35"
+        /// }
+        /// ```
+        EchoOk {
+            /// holds the message.
+            echo: String,
+        },
     }
 );
 
+/// Echo node entry point.
+///
+/// The echo server
+/// * Handle Initialization Protocol using [init].
+/// * Read standard input for [Request][EchoRequest::Echo]
+///   and reply with [Response][EchoResponse::EchoOk].
 fn main() {
     let stdin = stdin().lock();
     let mut deseralizer = serde_json::Deserializer::from_reader(stdin);
@@ -31,7 +59,7 @@ fn main() {
                 body: Body {
                     id: Some(id),
                     reply_id: request.body.id,
-                    payload: EchoRespone::EchoOk { echo },
+                    payload: EchoResponse::EchoOk { echo },
                 },
             },
         }
