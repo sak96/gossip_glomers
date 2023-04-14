@@ -64,6 +64,7 @@ impl EventHandler {
             id: 0,
             known: node_ids
                 .into_iter()
+                .filter(|n| !n.eq(&node))
                 .map(|nid| (nid, (HashSet::default(), HashSet::default())))
                 .collect(),
             messages: HashSet::default(),
