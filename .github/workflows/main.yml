@@ -50,6 +50,7 @@ jobs:
       - name: Generate Docs
         run: cargo doc --all --no-deps
       - name: Generate 404 html
+        # ref: https://github.com/rust-lang/rust/issues/73185
         run: |
           cat > target/doc/404.html << EOF
           <script>
