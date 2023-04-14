@@ -56,16 +56,25 @@ impl Challange {
 }
 
 /// Builds the challenge binary using cargo.
-fn build(release: bool, bin_name: &str) {
+fn build(release: bool, bin_name: &str) -> String {
     let mut args = vec!["build", "--bin", bin_name];
-    if release {
+    let profile = if release {
         args.push("--release");
-    }
+        "release"
+    } else {
+        "debug"
+    };
     let status = Command::new("cargo")
         .args(&args)
         .status()
         .expect("failed to build!");
     assert!(status.success());
+    format!(
+        "{}/{}/{}",
+        var("CARGO_TARGET_DIR").unwrap_or("target".to_string()),
+        profile,
+        bin_name
+    )
 }
 
 struct MaelStormCommand(Command);
@@ -74,22 +83,16 @@ impl MaelStormCommand {
     /// create command to execute maelstorm.
     pub fn new(
         maelstorm_bin: &PathBuf,
-        profile: &str,
+        bin_path: &str,
         bin_name: &str,
         node_count: usize,
         time_limit: usize,
     ) -> Self {
-        let bin_path = format!(
-            "{}/{}/{}",
-            var("CARGO_TARGET_DIR").unwrap_or("target".to_string()),
-            profile,
-            bin_name
-        );
         let mut command = Command::new(maelstorm_bin);
         command
             .arg("test")
             .args(["-w", &bin_name.to_case(Case::Kebab)])
-            .args(["--bin", &bin_path])
+            .args(["--bin", bin_path])
             .args(["--node-count", &node_count.to_string()])
             .args(["--time-limit", &time_limit.to_string()]);
         Self(command)
@@ -143,52 +146,51 @@ impl MaelStormCommand {
 
 /// build and run the challenge
 pub fn run(opts: Options) {
-    let profile = if opts.release { "release" } else { "debug" };
     let bin_name = opts.challange.get_name();
-    build(opts.release, &bin_name);
+    let bin_path = build(opts.release, &bin_name);
     match opts.challange {
         Challange::Echo => {
-            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 1, 10).execute();
+            MaelStormCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 1, 10).execute();
         }
         Challange::UniqueIds => {
-            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 3, 30)
+            MaelStormCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 3, 30)
                 .partition()
                 .rate(1000)
                 .total_availability()
                 .execute();
         }
         Challange::SingleBroadcast => {
-            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 1, 20)
+            MaelStormCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 1, 20)
                 .rate(10)
                 .execute();
         }
         Challange::MultiBroadcast => {
-            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 5, 20)
+            MaelStormCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 5, 20)
                 .rate(10)
                 .execute();
         }
         Challange::FaultyBroadcast => {
-            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 5, 20)
+            MaelStormCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 5, 20)
                 .rate(10)
                 .partition()
                 .execute();
         }
         Challange::EfficientBroadcast => {
-            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 25, 20)
+            MaelStormCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 25, 20)
                 .rate(100)
                 .latency(100)
                 .topology("tree4")
                 .execute();
         }
         Challange::EfficientBroadcast2 => {
-            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 25, 20)
+            MaelStormCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 25, 20)
                 .env("TICK_TIME", "1000")
                 .rate(100)
                 .latency(100)
                 .execute();
         }
         Challange::GrowOnlyCounter => {
-            MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 3, 20)
+            MaelStormCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 3, 20)
                 .rate(100)
                 .partition()
                 .execute();
