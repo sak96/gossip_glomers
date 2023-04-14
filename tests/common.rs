@@ -1,6 +1,8 @@
+use pretty_assertions::assert_eq;
 use std::{
     env::var,
     io::Write,
+    ops::Not,
     process::{Command, Stdio},
 };
 
@@ -27,8 +29,17 @@ fn build(release: bool, bin_name: &str) -> String {
 }
 
 /// Build and run binary with input and assert output.
-pub fn run_test(input: &str, expected_output: &str) {
+pub fn run_test(input: &str, output: &str) {
     let path = build(false, "echo");
+    let expected_output: String = output
+        .lines()
+        .filter_map(|x| {
+            x.trim()
+                .is_empty()
+                .not()
+                .then_some(format!("{}\n", x.trim()))
+        })
+        .collect();
     let mut child = Command::new(path)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
