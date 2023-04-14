@@ -56,7 +56,7 @@ derive_response!(
 /// # Example
 /// ```rust
 /// use gossip_glomers::init::init;
-/// let reader = r#"
+/// let input = r#"
 ///     {
 ///         "src": "c1",
 ///         "dest": "n1",
@@ -68,11 +68,22 @@ derive_response!(
 ///         }
 ///     }
 /// "#.as_bytes();
+/// let mut deseralizer = serde_json::Deserializer::from_reader(input);
 /// let mut writer = Vec::new();
-/// let mut deseralizer = serde_json::Deserializer::from_reader(reader);
 /// init(&mut writer, &mut deseralizer);
-/// assert_eq!(writer, r#"{"src":"n1","dest":"c1","body":{"msg_id":null,"in_reply_to":1,"type":"init_ok"}}
-/// "#.as_bytes());
+/// let output = std::str::from_utf8(&writer).unwrap().trim();
+/// assert_eq!(output, r#"
+///     {
+///         "src": "n1",
+///         "dest": "c1",
+///         "body": {
+///             "msg_id": null,
+///             "in_reply_to": 1,
+///             "type": "init_ok"
+///         }
+///     }
+/// "#.chars().filter(|ch|!char::is_whitespace(*ch)).collect::<String>()
+/// );
 /// ```
 pub fn init<'a, W: std::io::Write, R: serde_json::de::Read<'a>>(
     writer: &mut W,
