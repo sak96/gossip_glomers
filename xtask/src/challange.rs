@@ -172,17 +172,14 @@ pub fn run(opts: Options) {
             MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 25, 20)
                 .rate(100)
                 .latency(100)
-                .topology("total")
-                .partition()
+                .topology("tree4")
                 .execute();
         }
         Challange::EfficientBroadcast2 => {
             MaelStormCommand::new(&opts.maelstrom_bin, profile, &bin_name, 25, 20)
+                .env("TICK_TIME", "1000")
                 .rate(100)
-                .env("TICK_TIME", "100")
                 .latency(100)
-                .topology("total")
-                .partition()
                 .execute();
         }
         Challange::GrowOnlyCounter => {
