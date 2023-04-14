@@ -33,7 +33,13 @@ pub struct Body<Payload> {
     pub payload: Payload,
 }
 
-impl<Payload: Serialize> Message<Payload> {
+/// Response trait to allow sending of messages.
+pub trait Response {}
+
+/// Request trait to allow receive of messages.
+pub trait Request {}
+
+impl<Payload: Serialize + Response> Message<Payload> {
     /// Sends serialized message by writing to writer.
     ///
     /// # Panics
@@ -52,7 +58,7 @@ impl<Payload: Serialize> Message<Payload> {
     }
 }
 
-impl<Payload: DeserializeOwned> Message<Payload> {
+impl<Payload: DeserializeOwned + Request> Message<Payload> {
     /// Receives de-serialized message by reading from reader.
     ///
     /// # Panics
@@ -76,10 +82,12 @@ impl<Payload: DeserializeOwned> Message<Payload> {
 /// * [`::serde::Deserialize`]
 ///     * uses tag as `type`.
 ///     * uses `snake_case` for de-serialize
+/// * Add Request
 /// * Debug
 ///
 /// # Example
 /// ```rust
+/// # use gossip_glomers::derive_request;
 /// derive_request!{
 ///   pub enum Request {
 ///      // .. Variations
@@ -93,6 +101,7 @@ macro_rules! derive_request {
         #[derive(::serde::Deserialize, Debug)]
         #[serde(tag = "type", rename_all = "snake_case")]
         $vis enum $name $body
+        impl $crate::message::Request for $name {}
     };
 }
 
@@ -106,6 +115,7 @@ macro_rules! derive_request {
 ///
 /// # Example
 /// ```rust
+/// # use gossip_glomers::derive_response;
 /// derive_response!{
 ///   pub enum Respone {
 ///      // .. Variations
@@ -119,6 +129,7 @@ macro_rules! derive_response {
         #[derive(::serde::Serialize, Debug)]
         #[serde(tag = "type", rename_all = "snake_case")]
         $vis enum $name $body
+        impl $crate::message::Response for $name {}
     };
 }
 

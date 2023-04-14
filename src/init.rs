@@ -52,6 +52,28 @@ derive_response!(
 );
 
 /// Handles Initialization Protocol and returns Initialization payload.
+///
+/// # Example
+/// ```rust
+/// use gossip_glomers::init::init;
+/// let reader = r#"
+///     {
+///         "src": "c1",
+///         "dest": "n1",
+///         "body": {
+///             "msg_id": 1,
+///             "type": "init",
+///             "node_id": "n1",
+///             "node_ids": ["n1", "n2"]
+///         }
+///     }
+/// "#.as_bytes();
+/// let mut writer = Vec::new();
+/// let mut deseralizer = serde_json::Deserializer::from_reader(reader);
+/// init(&mut writer, &mut deseralizer);
+/// assert_eq!(writer, r#"{"src":"n1","dest":"c1","body":{"msg_id":null,"in_reply_to":1,"type":"init_ok"}}
+/// "#.as_bytes());
+/// ```
 pub fn init<'a, W: std::io::Write, R: serde_json::de::Read<'a>>(
     writer: &mut W,
     deseralizer: &mut serde_json::Deserializer<R>,
