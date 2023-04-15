@@ -12,6 +12,7 @@ derive_request!(
     pub enum EchoRequest {
         /// Echo request.
         ///
+        /// This message requests that a node echo a message.
         /// ```json
         /// { "echo": "Please echo 35"}
         /// ```
@@ -27,6 +28,8 @@ derive_response!(
     pub enum EchoResponse {
         /// Echo ok response.
         ///
+        /// This message acknowledges Echo request.
+        /// It includes the echo message from request.
         /// ```json
         /// {
         ///     "type": "echo_ok",

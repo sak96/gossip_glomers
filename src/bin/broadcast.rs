@@ -1,3 +1,4 @@
+//! Implements broadcast node using [main].
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::{
     io::{stdin, stdout},
@@ -12,50 +13,145 @@ use gossip_glomers::{
 };
 
 derive_request!(
-    pub enum BroadCastRequest {
+    /// Request payload for broadcast node.
+    pub enum BroadcastRequest {
+        /// Broadcast request.
+        ///
+        /// This message requests that a value be broadcast out to all nodes in the cluster.
+        /// ```json
+        /// {
+        ///     "type": "broadcast",
+        ///     "message": 1000
+        /// }
+        /// ```
         Broadcast {
+            /// message to broadcast.
             message: usize,
         },
+        /// Read request.
+        ///
+        /// This message requests that a node return all values that it has seen.
+        /// ```json
+        /// { "type": "read" }
+        /// ```
         Read,
+        /// Topology request.
+        ///
+        /// This message informs the node of who its neighboring nodes are.
+        /// ```json
+        /// {
+        ///     "type": "topology",
+        ///     "topology": {
+        ///         "n1": ["n2", "n3"],
+        ///         "n2": ["n1"],
+        ///         "n3": ["n1"]
+        ///     }
+        /// }
+        /// ```
         Topology {
+            /// Map from node to all the its neighboring nodes.
             topology: HashMap<String, Vec<String>>,
         },
-        Gossip {
+        /// Consensus request.
+        ///
+        /// This message informs new values seen from other nodes.
+        /// It includes values newly seen by the other node.
+        /// It also acknowledges last response by current to other node.
+        /// ```json
+        /// {
+        ///     "type": "consensus",
+        ///     "seen": ["2", "3"],
+        ///     "seen_ack": ["2", "3"]
+        /// }
+        /// ```
+        Consensus {
+            /// Values seen newly by other node.
             seen: HashSet<usize>,
-            you_saw: Vec<usize>,
+            /// Values received in last request of current node.
+            seen_ack: Vec<usize>,
         },
     }
 );
 
 derive_response!(
-    pub enum BroadCastRespone {
+    /// Response payload for broadcast node.
+    pub enum BroadcastRespone {
+        /// Broadcast ok response.
+        ///
+        /// This message acknowledges Broadcast request.
+        /// ```json
+        /// { "type": "broadcast_ok" }
+        /// ```
         BroadcastOk,
+        /// Read ok response.
+        ///
+        /// This message acknowledges Read request.
+        /// It includes a list of values it has seen.
+        /// ```json
+        /// {
+        ///     "type": "read_ok",
+        ///     "messages": [1, 8, 72, 25]
+        /// }
+        /// ```
         ReadOk {
+            /// List of all message seen until now.
             messages: HashSet<usize>,
         },
+        /// Topology ok response.
+        ///
+        /// This message acknowledges Topology request.
+        /// ```json
+        /// { "type": "topology_ok" }
+        /// ```
         TopologyOk,
-        Gossip {
+        /// Consensus response.
+        ///
+        /// This message informs new values seen by current nodes.
+        /// It also acknowledges last request by other to current node.
+        /// ```json
+        /// {
+        ///     "type": "consensus",
+        ///     "seen": ["2", "3"],
+        ///     "seen_ack": ["2", "3"]
+        /// }
+        /// ```
+        Consensus {
+            /// Values seen newly by current node.
             seen: Vec<usize>,
-            you_saw: Vec<usize>,
+            /// Values received in last response of other node.
+            seen_ack: Vec<usize>,
         },
     }
 );
 
+/// Event for node to handle.
 pub enum Event {
+    /// Tick Event to handle timer based events.
     Tick,
+    /// Close Event to stop node.
     Close,
-    Input(Message<BroadCastRequest>),
+    /// Input Event from other nodes.
+    Input(Message<BroadcastRequest>),
 }
 
+/// Event handler for broadcast node.
 struct EventHandler {
-    node: String,
+    /// Message response id counter.
     id: usize,
+    /// Node id.
+    node: String,
+    /// Message seen till now.
     messages: HashSet<usize>,
+    /// Memory of other nodes seen message.
+    ///
+    /// Known map from other node id to known id and last seen nodes.
     known: HashMap<String, (HashSet<usize>, HashSet<usize>)>,
+    /// Peer of current node.
     peers: HashSet<String>,
 }
 
 impl EventHandler {
+    /// Create new event handler from initialization message.
     pub fn new(init_request: InitRequest) -> Self {
         let (node, node_ids) = match init_request {
             InitRequest::Init { node_id, node_ids } => (node_id, node_ids),
@@ -72,32 +168,53 @@ impl EventHandler {
             node,
         }
     }
-
+    /// Handle input requests.
+    ///
+    /// Handle requests in following ways:
+    /// * [Broadcast](BroadcastRequest::Broadcast):
+    ///     * remember the message and force tick.
+    ///     * are replied with broadcast ok.
+    /// * [Read](BroadcastRequest::Read):
+    ///     * send read ok with all messages.
+    /// * [Topology](BroadcastRequest::Topology):
+    ///     * update peers list.
+    /// * [Consensus](BroadcastRequest::Consensus):
+    ///     * For any new message update seen and force tick.
+    ///     * Update the source node's known list.
+    ///     * Remember the message for seen_ack.
+    ///
+    /// # Arguments
+    /// * payload: request to be handled requests.
+    /// * src: source node id.
+    /// * tick_tx: tick sender to allow force ticking.
+    ///
+    /// # Returns
+    /// Response if any for payload.
     fn handle_input_payload(
         &mut self,
-        payload: BroadCastRequest,
+        payload: BroadcastRequest,
         src: &str,
         tick_tx: &mut Sender<()>,
-    ) -> Option<BroadCastRespone> {
+    ) -> Option<BroadcastRespone> {
         match payload {
-            BroadCastRequest::Broadcast { message } => {
+            BroadcastRequest::Broadcast { message } => {
                 if self.messages.insert(message) {
                     tick_tx.send(()).expect("failed to tick");
                 }
-                Some(BroadCastRespone::BroadcastOk)
+                Some(BroadcastRespone::BroadcastOk)
             }
-            BroadCastRequest::Read => Some(BroadCastRespone::ReadOk {
+            BroadcastRequest::Read => Some(BroadcastRespone::ReadOk {
                 messages: self.messages.clone(),
             }),
-            BroadCastRequest::Topology { mut topology } => {
+            BroadcastRequest::Topology { mut topology } => {
                 if let Some(peers) = topology.remove(&self.node) {
                     self.peers = peers.into_iter().collect();
                 }
-                Some(BroadCastRespone::TopologyOk)
+                Some(BroadcastRespone::TopologyOk)
             }
-            BroadCastRequest::Gossip { seen, you_saw } => {
+            BroadcastRequest::Consensus { seen, seen_ack } => {
                 let (known, last_sent) = self.known.get_mut(src).expect("node are pre-determined");
-                known.extend(you_saw.iter());
+                known.extend(seen_ack.iter());
                 if !self.messages.is_superset(&seen) {
                     self.messages.extend(seen.iter().copied());
                     tick_tx.send(()).expect("failed to tick");
@@ -107,6 +224,22 @@ impl EventHandler {
             }
         }
     }
+    /// Handle events.
+    ///
+    /// Handle events in following ways:
+    /// * [close](Event::Close): close the loop.
+    /// * [tick](Event::Tick):
+    ///     * send [Consensus](BroadcastRequest::Consensus) message to every peer.
+    ///     * send only difference from known of peer and message list.
+    ///     * send acknowledge for  peers last [Consensus](BroadcastRequest::Consensus).
+    /// * [input](Event::Input):
+    ///     * send payload to [Self::handle_input_payload].
+    ///     * send any response via writer.
+    ///
+    /// # Arguments
+    /// * rx: Events receiver Channel.
+    /// * tick_tx: Tick sender to allow force ticking.
+    /// * writer: Output response via writer.
     pub fn handle_events<W: std::io::Write>(
         &mut self,
         rx: Receiver<Event>,
@@ -126,8 +259,8 @@ impl EventHandler {
                             self.messages.difference(known).copied().collect::<Vec<_>>(),
                             last_sent.drain().collect::<Vec<_>>(),
                         ) {
-                            (seen, you_saw) if seen.is_empty() & you_saw.is_empty() => continue,
-                            (seen, you_saw) => BroadCastRespone::Gossip { seen, you_saw },
+                            (seen, seen_ack) if seen.is_empty() & seen_ack.is_empty() => continue,
+                            (seen, seen_ack) => BroadcastRespone::Consensus { seen, seen_ack },
                         };
                         let response = Message {
                             body: Body {
@@ -164,6 +297,7 @@ impl EventHandler {
     }
 }
 
+/// Send tick event to node and provides force ticking.
 pub fn ticker(event_tx: Sender<Event>, tick_rx: Receiver<()>) {
     let duration = std::env::var("TICK_TIME")
         .ok()
@@ -180,6 +314,7 @@ pub fn ticker(event_tx: Sender<Event>, tick_rx: Receiver<()>) {
     }
 }
 
+/// Receive input and send events to channel.
 pub fn input_recv(event_tx: Sender<Event>) {
     let stdin = stdin().lock();
     let deseralizer = serde_json::Deserializer::from_reader(stdin);
@@ -191,6 +326,21 @@ pub fn input_recv(event_tx: Sender<Event>) {
     event_tx.send(Event::Close).expect("failed to close");
 }
 
+/// Broadcast node entry point.
+///
+/// The broadcast server
+/// * Handle Initialization Protocol using [init].
+/// * Spawn [ticker] thread.
+/// * Spawn [input_recv] thread.
+/// * Run [EventHandler::handle_events].
+///
+/// # Consensus Logic
+/// * Current node keeps track of all other nodes know list.
+/// * On every tick it sends consensus message to peers.
+/// * The consensus will be reached when
+///     * Current node sends new item in [Consensus](BroadcastRequest::Consensus) for peer.
+///     * Peer then send [Consensus](BroadcastRequest::Consensus) with seen_ack containing the new item.
+///     * If a seen_ack is not received between tick then the new item is sent again.
 fn main() {
     let mut stdout = stdout().lock();
     let init_request = {

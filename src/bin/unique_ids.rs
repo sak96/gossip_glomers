@@ -12,6 +12,7 @@ derive_request!(
     pub enum GenRequest {
         /// Generate Id request.
         ///
+        /// This message requests node to generate unique id.
         /// ```json
         /// { "type": "generate" }
         /// ```
@@ -24,10 +25,12 @@ derive_response!(
     pub enum GenRespone {
         /// Generate ok response.
         ///
+        /// This message acknowledges Generate request.
+        /// It includes the uniquely generated Id.
         /// ```json
         /// {
         ///     "type": "generate_ok",
-        ///     "id": 123
+        ///     "id": "123"
         /// }
         /// ```
         GenerateOk {
