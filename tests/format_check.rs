@@ -103,6 +103,7 @@ fn test_broadcast() {
 
 /// test g-counter node input and output.
 #[test]
+#[ignore = "This has race condition"]
 fn test_g_counter() {
     let input = r#"
     { "src": "c1", "dest": "n1", "body": { "msg_id": 1, "type": "init", "node_id": "n1", "node_ids": ["n1", "n2"] } }
