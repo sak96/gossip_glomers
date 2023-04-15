@@ -25,7 +25,7 @@ derive_request!(
         /// ```
         Add {
             /// delta value.
-            delta: usize
+            delta: usize,
         },
         /// Read request.
         ///
@@ -44,9 +44,9 @@ derive_request!(
         /// }
         /// ```
         #[serde(rename = "read_ok")]
-        ReadCounterOk { 
+        ReadCounterOk {
             /// counter value.
-            value: usize
+            value: usize,
         },
         /// Update Success request.
         ///
@@ -70,7 +70,7 @@ derive_request!(
             /// error code.
             code: ErrorCode,
             /// error message.
-            text: String
+            text: String,
         },
     }
 );

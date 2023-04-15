@@ -28,3 +28,21 @@ Documentation for the repository can be found in [GitHub pages](https://sak96.gi
   ```
 
 If maelstrom binary is not in `$PATH` variable then, add flag `-m $MALESTROM_LOCATION` run or serve commands.
+
+# To-do list
+
+- Kafka challenge
+  - [ ] single node
+  - [ ] multi node
+  - [ ] efficient
+- Totally-Available Transactions
+  - [ ] single node
+  - [ ] read uncommitted
+  - [ ] read committed
+- Integration test
+  - [x] echo
+  - [ ] unique-ids
+  - [ ] broadcast
+  - [ ] g-counter
+  - [ ] Kafka
+  - [ ] Totally Available Transactions
