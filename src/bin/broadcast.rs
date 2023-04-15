@@ -148,6 +148,8 @@ struct EventHandler {
     known: HashMap<String, (HashSet<usize>, HashSet<usize>)>,
     /// Peer of current node.
     peers: HashSet<String>,
+    /// Force tick.
+    force: bool,
 }
 
 impl EventHandler {
@@ -156,6 +158,10 @@ impl EventHandler {
         let (node, node_ids) = match init_request {
             InitRequest::Init { node_id, node_ids } => (node_id, node_ids),
         };
+        let force = std::env::var("FORCE_TICK")
+            .ok()
+            .and_then(|x| x.parse().ok())
+            .unwrap_or(true);
         Self {
             id: 0,
             known: node_ids
@@ -166,6 +172,7 @@ impl EventHandler {
             messages: HashSet::default(),
             peers: HashSet::default(),
             node,
+            force,
         }
     }
     /// Handle input requests.
@@ -198,7 +205,7 @@ impl EventHandler {
     ) -> Option<BroadcastRespone> {
         match payload {
             BroadcastRequest::Broadcast { message } => {
-                if self.messages.insert(message) {
+                if self.messages.insert(message) & self.force {
                     tick_tx.send(()).expect("failed to tick");
                 }
                 Some(BroadcastRespone::BroadcastOk)
@@ -217,7 +224,9 @@ impl EventHandler {
                 known.extend(seen_ack.iter());
                 if !self.messages.is_superset(&seen) {
                     self.messages.extend(seen.iter().copied());
-                    tick_tx.send(()).expect("failed to tick");
+                    if self.force {
+                        tick_tx.send(()).expect("failed to tick");
+                    }
                 }
                 *last_sent = seen;
                 None
@@ -302,7 +311,7 @@ pub fn ticker(event_tx: Sender<Event>, tick_rx: Receiver<()>) {
     let duration = std::env::var("TICK_TIME")
         .ok()
         .and_then(|x| x.parse().ok())
-        .unwrap_or(300);
+        .unwrap_or(200);
     while matches!(
         tick_rx.recv_timeout(Duration::from_millis(duration)),
         Err(RecvTimeoutError::Timeout) | Ok(_)

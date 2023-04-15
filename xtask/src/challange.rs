@@ -189,7 +189,7 @@ pub fn run(opts: RunOptions) {
         }
         Challange::EfficientBroadcast2 => {
             MaelStromCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 25, 20)
-                .env("TICK_TIME", "1000")
+                .env("FORCE_TICK", "false")
                 .rate(100)
                 .latency(100)
                 .execute();
