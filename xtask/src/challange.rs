@@ -30,21 +30,21 @@ pub struct RunOptions {
 #[derive(Clone, ValueEnum, Parser, Debug)]
 #[clap(rename_all = "snake_case")]
 pub enum Challange {
-    /// Echo challenge
+    /// Echo
     Echo,
-    /// Unique id challenge
+    /// Unique id
     UniqueIds,
-    /// Single broadcast challenge
+    /// Single node broadcast
     SingleBroadcast,
-    /// Multi broadcast challenge
+    /// Multi node broadcast
     MultiBroadcast,
-    /// Faulty broadcast challenge
+    /// Faulty node broadcast
     FaultyBroadcast,
-    /// Efficient broadcast challenge
+    /// Efficient broadcast
     EfficientBroadcast,
-    /// Efficient broadcast two challenge
+    /// Efficient broadcast two
     EfficientBroadcast2,
-    /// Grow Only Counter
+    /// Grow only counter
     GrowOnlyCounter,
 }
 
@@ -91,6 +91,30 @@ fn build(release: bool, bin_name: &str) -> String {
 ///
 /// [Docs](https://github.com/jepsen-io/maelstrom/blob/main/README.md#cli-options).
 struct MaelStromCommand(Command);
+
+struct MaelStromResult(edn_format::Value);
+
+impl MaelStromResult {
+    pub fn get_value_at<'a>(&'a self, path: &[edn_format::Value]) -> Option<&'a edn_format::Value> {
+        Self::get_value_at_inner(&self.0, path)
+    }
+
+    pub fn get_value_at_inner<'a>(
+        value: &'a edn_format::Value,
+        path: &[edn_format::Value],
+    ) -> Option<&'a edn_format::Value> {
+        if path.is_empty() {
+            return Some(value);
+        }
+        match value {
+            edn_format::Value::Map(map) => {
+                let value = map.get(&path[0])?;
+                Self::get_value_at_inner(value, &path[1..])
+            }
+            _ => None,
+        }
+    }
+}
 
 impl MaelStromCommand {
     /// create command to execute maelstrom.
@@ -156,6 +180,14 @@ impl MaelStromCommand {
             .status()
             .unwrap_or_else(|_| panic!("command invocation failed {command:?}!"));
         assert!(status.success());
+    }
+
+    pub fn get_results() -> MaelStromResult {
+        const FILE: &str = "store/current/results.edn";
+        MaelStromResult(
+            edn_format::parse_str(&std::fs::read_to_string(FILE).expect("could not open file"))
+                .expect("failed to parse result"),
+        )
     }
 }
 
@@ -239,6 +271,34 @@ pub fn run(opts: RunOptions) {
             .latency(100)
             .topology("tree4")
             .execute();
+            let result = MaelStromCommand::get_results();
+            let message_per_op = result.get_value_at(&[
+                edn_format::Keyword::from_name("net").into(),
+                edn_format::Keyword::from_name("servers").into(),
+                edn_format::Keyword::from_name("msgs-per-op").into(),
+            ]);
+            assert!(
+                message_per_op.expect("failed to get message per ops")
+                    < &edn_format::Value::Float(30.0.into())
+            );
+            let median_latency = result.get_value_at(&[
+                edn_format::Keyword::from_name("workload").into(),
+                edn_format::Keyword::from_name("stable-latencies").into(),
+                0.5.into(),
+            ]);
+            assert!(
+                median_latency.expect("failed to get median latency")
+                    < &edn_format::Value::Integer(400)
+            );
+            let maximum_latency = result.get_value_at(&[
+                edn_format::Keyword::from_name("workload").into(),
+                edn_format::Keyword::from_name("stable-latencies").into(),
+                1.into(),
+            ]);
+            assert!(
+                maximum_latency.expect("failed to get maximum latency")
+                    < &edn_format::Value::Integer(600)
+            );
         }
         Challange::EfficientBroadcast2 => {
             MaelStromCommand::new(
@@ -253,6 +313,34 @@ pub fn run(opts: RunOptions) {
             .rate(100)
             .latency(100)
             .execute();
+            let result = MaelStromCommand::get_results();
+            let message_per_op = result.get_value_at(&[
+                edn_format::Keyword::from_name("net").into(),
+                edn_format::Keyword::from_name("servers").into(),
+                edn_format::Keyword::from_name("msgs-per-op").into(),
+            ]);
+            assert!(
+                message_per_op.expect("failed to get message per ops")
+                    < &edn_format::Value::Float(20.0.into())
+            );
+            let median_latency = result.get_value_at(&[
+                edn_format::Keyword::from_name("workload").into(),
+                edn_format::Keyword::from_name("stable-latencies").into(),
+                0.5.into(),
+            ]);
+            assert!(
+                median_latency.expect("failed to get median latency")
+                    < &edn_format::Value::Integer(1000)
+            );
+            let maximum_latency = result.get_value_at(&[
+                edn_format::Keyword::from_name("workload").into(),
+                edn_format::Keyword::from_name("stable-latencies").into(),
+                1.into(),
+            ]);
+            assert!(
+                maximum_latency.expect("failed to get maximum latency")
+                    < &edn_format::Value::Integer(2000)
+            );
         }
         Challange::GrowOnlyCounter => {
             MaelStromCommand::new(
