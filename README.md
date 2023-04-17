@@ -39,10 +39,21 @@ If maelstrom binary is not in `$PATH` variable then, add flag `-m $MALESTROM_LOC
   - [ ] single node
   - [ ] read uncommitted
   - [ ] read committed
-- Integration test
-  - [x] echo
-  - [ ] unique-ids
-  - [ ] broadcast
-  - [ ] g-counter
-  - [ ] Kafka
-  - [ ] Totally Available Transactions
+
+# Testing
+
+Naive test cases are in current package.
+These can be run as follow:
+
+```bash
+cargo test
+```
+
+The integration test cases are used only for checking the request/response parsing.
+Some integration test cases are ignored due to race conditions.
+
+To run all challenge as test cases. 
+Note parallelization can cause issue with result directory.
+```bash
+cargo test -p xtask -- --test-threads 1
+```
