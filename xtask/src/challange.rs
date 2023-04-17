@@ -178,7 +178,7 @@ impl MaelStromCommand {
         let mut command = self.0;
         let status = command
             .status()
-            .unwrap_or_else(|_| panic!("command invocation failed {command:?}!"));
+            .unwrap_or_else(|e| panic!("command invocation failed {command:?} with error {e:?}!"));
         assert!(status.success());
     }
 
