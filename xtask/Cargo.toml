@@ -8,3 +8,6 @@ license = "Apache-2.0"
 clap = { version = "4.1", features = ["derive"] }
 convert_case = "0.6.0"
 edn-format = "3.2"
+
+[dev-dependencies]
+rstest = "0.17"
