@@ -18,6 +18,12 @@ pub struct RunOptions {
     /// Build and run the release target
     #[clap(long)]
     pub release: bool,
+
+    /// Extra arguments to be passed to maelstrom.
+    ///
+    /// Example: `--log-stderr`, `--log-net-send`, `--log-net-recv`
+    #[clap(last = true)]
+    pub extra_args: Vec<String>,
 }
 
 /// Challenges from Gossip Glomers.
@@ -82,6 +88,8 @@ fn build(release: bool, bin_name: &str) -> String {
 }
 
 /// Helper for running maelstrom commands.
+///
+/// [Docs](https://github.com/jepsen-io/maelstrom/blob/main/README.md#cli-options).
 struct MaelStromCommand(Command);
 
 impl MaelStromCommand {
@@ -92,6 +100,7 @@ impl MaelStromCommand {
         bin_name: &str,
         node_count: usize,
         time_limit: usize,
+        extra_args: &[String],
     ) -> Self {
         let mut command = Command::new(maelstrom_bin);
         command
@@ -99,7 +108,8 @@ impl MaelStromCommand {
             .args(["-w", &bin_name.to_case(Case::Kebab)])
             .args(["--bin", bin_path])
             .args(["--node-count", &node_count.to_string()])
-            .args(["--time-limit", &time_limit.to_string()]);
+            .args(["--time-limit", &time_limit.to_string()])
+            .args(extra_args);
         Self(command)
     }
 
@@ -155,50 +165,107 @@ pub fn run(opts: RunOptions) {
     let bin_path = build(opts.release, &bin_name);
     match opts.challange {
         Challange::Echo => {
-            MaelStromCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 1, 10).execute();
+            MaelStromCommand::new(
+                &opts.maelstrom_bin,
+                &bin_path,
+                &bin_name,
+                1,
+                10,
+                &opts.extra_args,
+            )
+            .execute();
         }
         Challange::UniqueIds => {
-            MaelStromCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 3, 30)
-                .partition()
-                .rate(1000)
-                .total_availability()
-                .execute();
+            MaelStromCommand::new(
+                &opts.maelstrom_bin,
+                &bin_path,
+                &bin_name,
+                3,
+                30,
+                &opts.extra_args,
+            )
+            .partition()
+            .rate(1000)
+            .total_availability()
+            .execute();
         }
         Challange::SingleBroadcast => {
-            MaelStromCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 1, 20)
-                .rate(10)
-                .execute();
+            MaelStromCommand::new(
+                &opts.maelstrom_bin,
+                &bin_path,
+                &bin_name,
+                1,
+                20,
+                &opts.extra_args,
+            )
+            .rate(10)
+            .execute();
         }
         Challange::MultiBroadcast => {
-            MaelStromCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 5, 20)
-                .rate(10)
-                .execute();
+            MaelStromCommand::new(
+                &opts.maelstrom_bin,
+                &bin_path,
+                &bin_name,
+                5,
+                20,
+                &opts.extra_args,
+            )
+            .rate(10)
+            .execute();
         }
         Challange::FaultyBroadcast => {
-            MaelStromCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 5, 20)
-                .rate(10)
-                .partition()
-                .execute();
+            MaelStromCommand::new(
+                &opts.maelstrom_bin,
+                &bin_path,
+                &bin_name,
+                5,
+                20,
+                &opts.extra_args,
+            )
+            .rate(10)
+            .partition()
+            .execute();
         }
         Challange::EfficientBroadcast => {
-            MaelStromCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 25, 20)
-                .rate(100)
-                .latency(100)
-                .topology("tree4")
-                .execute();
+            MaelStromCommand::new(
+                &opts.maelstrom_bin,
+                &bin_path,
+                &bin_name,
+                25,
+                20,
+                &opts.extra_args,
+            )
+            .rate(100)
+            .latency(100)
+            .topology("tree4")
+            .execute();
         }
         Challange::EfficientBroadcast2 => {
-            MaelStromCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 25, 20)
-                .env("FORCE_TICK", "false")
-                .rate(100)
-                .latency(100)
-                .execute();
+            MaelStromCommand::new(
+                &opts.maelstrom_bin,
+                &bin_path,
+                &bin_name,
+                25,
+                20,
+                &opts.extra_args,
+            )
+            .env("FORCE_TICK", "false")
+            .rate(100)
+            .latency(100)
+            .execute();
         }
         Challange::GrowOnlyCounter => {
-            MaelStromCommand::new(&opts.maelstrom_bin, &bin_path, &bin_name, 3, 20)
-                .rate(100)
-                .partition()
-                .execute();
+            MaelStromCommand::new(
+                &opts.maelstrom_bin,
+                &bin_path,
+                &bin_name,
+                3,
+                20,
+                &opts.extra_args,
+            )
+            .rate(100)
+            .partition()
+            .execute();
         }
     }
 }
