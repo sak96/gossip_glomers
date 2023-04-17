@@ -53,7 +53,6 @@ The integration test cases are used only for checking the request/response parsi
 Some integration test cases are ignored due to race conditions.
 
 To run all challenge as test cases. 
-Note parallelization can cause issue with result directory.
 ```bash
-cargo test -p xtask -- --test-threads 1
+cargo test -p xtask
 ```

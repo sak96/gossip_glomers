@@ -10,4 +10,4 @@ convert_case = "0.6.0"
 edn-format = "3.2"
 
 [dev-dependencies]
-rstest = "0.17"
+serial_test = "2"
