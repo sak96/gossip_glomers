@@ -29,30 +29,3 @@ Documentation for the repository can be found in [GitHub pages](https://sak96.gi
 
 If maelstrom binary is not in `$PATH` variable then, add flag `-m $MALESTROM_LOCATION` run or serve commands.
 
-# To-do list
-
-- Kafka challenge
-  - [ ] single node
-  - [ ] multi node
-  - [ ] efficient
-- Totally-Available Transactions
-  - [ ] single node
-  - [ ] read uncommitted
-  - [ ] read committed
-
-# Testing
-
-Naive test cases are in current package.
-These can be run as follow:
-
-```bash
-cargo test
-```
-
-The integration test cases are used only for checking the request/response parsing.
-Some integration test cases are ignored due to race conditions.
-
-To run all challenge as test cases. 
-```bash
-cargo test -p xtask
-```
