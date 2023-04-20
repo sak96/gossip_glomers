@@ -1,7 +1,7 @@
 #  Gossip Glomers
 
 ![Lint and Deploy docs](https://github.com/sak96/gossip_glomers/actions/workflows/main.yml/badge.svg)
-![License](https://img.shields.io/badge/License-Apache_2.0-yellowgreen.svg)
+![License](https://img.shields.io/github/license/sak96/gossip_glomers)
 ![Top Language](https://img.shields.io/github/languages/top/sak96/gossip_glomers)
 
 `Gossip Glomers` is series of distributed systems challenges.
