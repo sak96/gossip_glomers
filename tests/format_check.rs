@@ -51,7 +51,8 @@ pub fn run_test(bin: &str, input: &str, output: &str) {
         .unwrap()
         .write_all(input.as_bytes())
         .unwrap();
-    let output = String::from_utf8(child.wait_with_output().unwrap().stdout).unwrap();
+    let stdout = child.wait_with_output().unwrap().stdout;
+    let output = String::from_utf8_lossy(&stdout);
     assert_eq!(output, expected_output, "{input}");
 }
 

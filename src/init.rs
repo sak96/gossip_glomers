@@ -71,7 +71,8 @@ derive_response!(
 /// let mut deseralizer = serde_json::Deserializer::from_reader(input);
 /// let mut writer = Vec::new();
 /// init(&mut writer, &mut deseralizer);
-/// let output = std::str::from_utf8(&writer).unwrap().trim();
+/// let output = String::from_utf8_lossy(&writer);
+/// let output = output.trim();
 /// assert_eq!(output, r#"
 ///     {
 ///         "src": "n1",

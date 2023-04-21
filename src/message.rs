@@ -156,7 +156,8 @@ macro_rules! derive_request {
 /// };
 /// let mut writer = Vec::new();
 /// input.send(&mut writer);
-/// let output = std::str::from_utf8(&writer).unwrap().trim();
+/// let output = String::from_utf8_lossy(&writer);
+/// let output = output.trim();
 /// assert_eq!(output, r#"
 ///     {
 ///         "src": "src",
