@@ -29,8 +29,31 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: clippy
+      - name: Restore cache Maelstrom Binary
+        id: restore-maelstrom
+        uses: actions/cache/restore@v3
+        with:
+          path: maelstrom
+          key: maelstrom
+      - name: Download maelstrom
+        if: steps.restore-maelstrom.outputs.cache-hit != 'true'
+        run: |
+          curl -LO https://github.com/jepsen-io/maelstrom/releases/download/v0.2.3/maelstrom.tar.bz2
+          tar -xjf maelstrom.tar.bz2
+          rm maelstrom.tar.bz2
+      - name: Cache Maelstrom Binary
+        uses: actions/cache@v3
+        with:
+          path: maelstrom
+          key: maelstrom
+      - name: Install GNU plot
+        run: sudo apt update && sudo apt install gnuplot
       - name: Test
         run: cargo test --all-features
+      - name: Test Challenges
+        env:
+          MAELSTROM_BIN: ./maelstrom/maelstrom
+        run: cargo test -p xtask
       - name: Format
         uses: actions-rust-lang/rustfmt@v1
       - name: Lint
