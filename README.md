@@ -27,5 +27,6 @@ Documentation for the repository can be found in [GitHub pages](https://sak96.gi
   cargo xtask serve
   ```
 
-If maelstrom binary is not in `$PATH` variable then, add flag `-m $MALESTROM_LOCATION` run or serve commands.
-
+If maelstrom binary is not in `$PATH` variable then for run or serve commands:
+  - add flag `-m ./maelstrom` or
+  - add environment variable `MAELSTROM_BIN="./maelstrom"`

@@ -7,7 +7,7 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 pub struct ServeOptions {
     /// Maelstrom binary location
-    #[arg(short, long, default_value = "maelstrom")]
+    #[arg(short, long, env, default_value = "maelstrom")]
     pub maelstrom_bin: PathBuf,
 }
 

@@ -12,7 +12,7 @@ pub struct RunOptions {
     pub challange: Challange,
 
     /// Maelstrom binary location
-    #[arg(short, long, default_value = "maelstrom")]
+    #[arg(short, long, env, default_value = "maelstrom")]
     pub maelstrom_bin: PathBuf,
 
     /// Build and run the release target
