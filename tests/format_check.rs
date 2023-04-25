@@ -79,7 +79,7 @@ fn test_unique_id() {
     "#;
     let output = r#"
     {"src":"n1","dest":"c1","body":{"msg_id":null,"in_reply_to":1,"type":"init_ok"}}
-    {"src":"n1","dest":"c1","body":{"msg_id":0,"in_reply_to":1,"type":"generate_ok","id":"n1/0"}}
+    {"src":"n1","dest":"c1","body":{"msg_id":0,"in_reply_to":1,"type":"generate_ok","id":0}}
     "#;
     run_test("unique_ids", input, output);
 }
